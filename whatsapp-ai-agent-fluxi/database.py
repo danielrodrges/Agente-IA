@@ -9,11 +9,16 @@ import os
 # URL do banco de dados
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./fluxi.db")
 
+# Corrigir URL do PostgreSQL (Vercel/Supabase usa postgres:// mas SQLAlchemy requer postgresql://)
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 # Criar engine
 engine = create_engine(
     DATABASE_URL,
     connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {},
-    echo=False
+    echo=False,
+    pool_pre_ping=True
 )
 
 # Session local

@@ -2,11 +2,15 @@
 Configuração de logging para o sistema RAG.
 """
 import logging
+import os
 import sys
 from datetime import datetime
 
 def setup_logging():
     """Configura o sistema de logging."""
+    
+    # Detectar ambiente serverless
+    is_serverless = os.getenv("VERCEL", "") == "1" or os.getenv("AWS_LAMBDA_FUNCTION_NAME", "") != ""
     
     # Criar logger principal
     logger = logging.getLogger()
@@ -28,11 +32,12 @@ def setup_logging():
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
     
-    # Handler para arquivo (logs específicos do RAG)
-    file_handler = logging.FileHandler('rag_processing.log', encoding='utf-8')
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
+    # Handler para arquivo (pular em serverless - filesystem read-only)
+    if not is_serverless:
+        file_handler = logging.FileHandler('rag_processing.log', encoding='utf-8')
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
     
     # Configurar loggers específicos
     rag_logger = logging.getLogger('rag')

@@ -211,6 +211,9 @@ class MensagemService:
         # Se for resposta fixa, enviar e retornar
         if tipo_mensagem != "texto" and config_tipo["acao"] == "resposta_fixa" and config_tipo["resposta_fixa"]:
             from sessao.sessao_service import gerenciador_sessoes
+            if not NEONIZE_AVAILABLE:
+                print("⚠️  Neonize indisponível - ignorando envio de resposta fixa")
+                return
             from neonize.utils import build_jid
             cliente = gerenciador_sessoes.obter_cliente(sessao_id)
             if cliente:
@@ -243,6 +246,9 @@ class MensagemService:
             
             if comando_encontrado:
                 from sessao.sessao_service import gerenciador_sessoes
+                if not NEONIZE_AVAILABLE:
+                    print("⚠️  Neonize indisponível - ignorando comando")
+                    return
                 from neonize.utils import build_jid
                 cliente = gerenciador_sessoes.obter_cliente(sessao_id)
                 jid = build_jid(telefone_cliente) if cliente else None
@@ -426,6 +432,9 @@ class MensagemService:
                             
                             # Verificar se deve apenas responder com transcrição
                             if config_tipo["acao"] == "transcricao_apenas":
+                                if not NEONIZE_AVAILABLE:
+                                    print("⚠️  Neonize indisponível - ignorando envio de transcrição")
+                                    return
                                 from neonize.utils import build_jid
                                 jid = build_jid(telefone_cliente)
                                 cliente.send_message(jid, message=f"📝 *Transcrição do áudio:*\n\n{texto_transcrito}")
@@ -522,7 +531,7 @@ class MensagemService:
                     from sessao.sessao_service import gerenciador_sessoes
                     cliente = gerenciador_sessoes.obter_cliente(sessao_id)
                     
-                    if cliente:
+                    if cliente and NEONIZE_AVAILABLE:
                         from neonize.utils import build_jid
                         jid = build_jid(telefone_cliente)
                         # Parâmetro correto: message (str ou Message object)
@@ -546,7 +555,7 @@ class MensagemService:
                     from sessao.sessao_service import gerenciador_sessoes
                     cliente = gerenciador_sessoes.obter_cliente(sessao_id)
                     
-                    if cliente:
+                    if cliente and NEONIZE_AVAILABLE:
                         from neonize.utils import build_jid
                         jid = build_jid(telefone_cliente)
                         
