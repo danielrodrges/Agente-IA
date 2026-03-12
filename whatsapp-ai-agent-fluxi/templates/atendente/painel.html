@@ -1,0 +1,576 @@
+{% extends "base.html" %}
+
+{% block title %}Painel do Atendente - Fluxi.IA{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 class="title is-3" style="margin-bottom: 0.75rem !important; line-height: 1.2;">
+            <i class="fas fa-headset" style="color: #8b5cf6;"></i> Painel do Atendente
+        </h1>
+        <p class="subtitle is-6" style="color: #6b7280; margin-bottom: 0 !important;">
+            Gerencie escalações e auxilie o agente IA em tempo real
+        </p>
+    </div>
+    <div style="display: flex; gap: 0.75rem; align-items: center;">
+        <span id="ws-status" class="tag is-danger is-medium">
+            <i class="fas fa-circle" style="font-size: 0.5rem; margin-right: 0.5rem;"></i> Desconectado
+        </span>
+        <button class="button is-small" onclick="conectarWebSocket()" title="Reconectar">
+            <i class="fas fa-sync-alt"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Métricas Rápidas -->
+<div class="columns is-multiline" style="margin-bottom: 2rem;">
+    <div class="column is-3">
+        <div class="box" style="text-align: center; border-left: 4px solid #ef4444;">
+            <div style="font-size: 2.5rem; font-weight: 800; color: #ef4444;" id="metric-pendentes">0</div>
+            <div style="font-size: 0.8rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">Pendentes</div>
+        </div>
+    </div>
+    <div class="column is-3">
+        <div class="box" style="text-align: center; border-left: 4px solid #f59e0b;">
+            <div style="font-size: 2.5rem; font-weight: 800; color: #f59e0b;" id="metric-atendimento">0</div>
+            <div style="font-size: 0.8rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">Em Atendimento</div>
+        </div>
+    </div>
+    <div class="column is-3">
+        <div class="box" style="text-align: center; border-left: 4px solid #10b981;">
+            <div style="font-size: 2.5rem; font-weight: 800; color: #10b981;" id="metric-respondidas">0</div>
+            <div style="font-size: 0.8rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">Respondidas Hoje</div>
+        </div>
+    </div>
+    <div class="column is-3">
+        <div class="box" style="text-align: center; border-left: 4px solid #3b82f6;">
+            <div style="font-size: 2.5rem; font-weight: 800; color: #3b82f6;" id="metric-tempo-medio">0s</div>
+            <div style="font-size: 0.8rem; color: #6b7280; font-weight: 600; text-transform: uppercase;">Tempo Médio</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="box" style="margin-bottom: 1.5rem; padding: 1rem 1.5rem;">
+    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+        <div class="select is-small">
+            <select id="filtro-status" onchange="filtrarEscalacoes()">
+                <option value="">Todos os status</option>
+                <option value="pendente" selected>Pendentes</option>
+                <option value="em_atendimento">Em atendimento</option>
+                <option value="respondida">Respondidas</option>
+                <option value="assumida_humano">Assumidas</option>
+                <option value="expirada">Expiradas</option>
+            </select>
+        </div>
+        <div class="select is-small">
+            <select id="filtro-prioridade" onchange="filtrarEscalacoes()">
+                <option value="">Todas as prioridades</option>
+                <option value="urgente">Urgente</option>
+                <option value="alta">Alta</option>
+                <option value="media">Média</option>
+                <option value="baixa">Baixa</option>
+            </select>
+        </div>
+        <div class="select is-small">
+            <select id="filtro-tipo" onchange="filtrarEscalacoes()">
+                <option value="">Todos os tipos</option>
+                <option value="duvida_agendamento">Dúvida Agendamento</option>
+                <option value="autorizacao_cancelamento">Autorização Cancelamento</option>
+                <option value="reclamacao">Reclamação</option>
+                <option value="excecao_politica">Exceção Política</option>
+                <option value="informacao_erp">Informação ERP</option>
+                <option value="cadastro_paciente">Cadastro Paciente</option>
+                <option value="informacao_clinica">Informação Clínica</option>
+                <option value="outro">Outro</option>
+            </select>
+        </div>
+        <button class="button is-small is-link is-light" onclick="filtrarEscalacoes()">
+            <i class="fas fa-search"></i>&nbsp;Filtrar
+        </button>
+        <button class="button is-small" onclick="limparFiltros()">
+            <i class="fas fa-times"></i>&nbsp;Limpar
+        </button>
+        <div style="margin-left: auto;">
+            <a href="/atendente/metricas" class="button is-small is-info is-light">
+                <i class="fas fa-chart-bar"></i>&nbsp;Métricas Detalhadas
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Lista de Escalações -->
+<div id="escalacoes-lista">
+    <div class="has-text-centered" style="padding: 3rem;">
+        <i class="fas fa-spinner fa-spin fa-2x" style="color: #6b7280;"></i>
+        <p style="color: #6b7280; margin-top: 1rem;">Carregando escalações...</p>
+    </div>
+</div>
+
+<!-- Modal de Resposta -->
+<div class="modal" id="modal-resposta">
+    <div class="modal-background" onclick="fecharModal()"></div>
+    <div class="modal-card" style="max-width: 700px; width: 95%;">
+        <header class="modal-card-head" style="background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%);">
+            <p class="modal-card-title" style="color: white;">
+                <i class="fas fa-reply"></i> Responder Escalação
+            </p>
+            <button class="delete" aria-label="close" onclick="fecharModal()"></button>
+        </header>
+        <section class="modal-card-body">
+            <input type="hidden" id="modal-escalacao-id">
+            
+            <div class="field">
+                <label class="label">Pergunta da IA</label>
+                <div id="modal-pergunta" style="background: #f3f4f6; padding: 1rem; border-radius: 8px; border-left: 4px solid #8b5cf6; font-style: italic;"></div>
+            </div>
+            
+            <div class="field" style="margin-top: 1rem;">
+                <label class="label">
+                    <i class="fas fa-phone"></i> Telefone do Paciente
+                </label>
+                <div id="modal-telefone" style="font-weight: 600; font-size: 1.1rem;"></div>
+            </div>
+            
+            <div class="field" style="margin-top: 1rem;">
+                <label class="label">Sua Resposta</label>
+                <div class="control">
+                    <textarea class="textarea" id="modal-resposta-texto" rows="4" 
+                        placeholder="Digite sua resposta para ajudar a IA a atender o paciente..."></textarea>
+                </div>
+                <p class="help">A IA usará sua resposta para formular uma mensagem natural ao paciente.</p>
+            </div>
+        </section>
+        <footer class="modal-card-foot" style="justify-content: flex-end; gap: 0.75rem;">
+            <button class="button" onclick="fecharModal()">Cancelar</button>
+            <button class="button is-success" onclick="enviarResposta()" id="btn-enviar-resposta">
+                <i class="fas fa-paper-plane"></i>&nbsp;Enviar Resposta
+            </button>
+        </footer>
+    </div>
+</div>
+
+<!-- Notification Toast -->
+<div id="toast-container" style="position: fixed; top: 80px; right: 20px; z-index: 9999;"></div>
+
+<!-- Audio para notificação -->
+<audio id="notification-sound" preload="auto">
+    <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
+</audio>
+
+<script>
+let ws = null;
+let reconnectInterval = null;
+
+// ========== WEBSOCKET COM FALLBACK PARA POLLING ==========
+let usandoPolling = false;
+let pollingInterval = null;
+let ultimaVerificacao = Date.now();
+
+function conectarWebSocket() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/api/escalacoes/ws`;
+    
+    try {
+        ws = new WebSocket(wsUrl);
+        
+        ws.onopen = () => {
+            usandoPolling = false;
+            if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
+            document.getElementById('ws-status').className = 'tag is-success is-medium';
+            document.getElementById('ws-status').innerHTML = '<i class="fas fa-circle" style="font-size: 0.5rem; margin-right: 0.5rem;"></i> Conectado';
+            if (reconnectInterval) {
+                clearInterval(reconnectInterval);
+                reconnectInterval = null;
+            }
+            console.log('WebSocket conectado');
+        };
+        
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            processarMensagemWS(data);
+        };
+        
+        ws.onclose = () => {
+            document.getElementById('ws-status').className = 'tag is-warning is-medium';
+            document.getElementById('ws-status').innerHTML = '<i class="fas fa-sync fa-spin" style="font-size: 0.5rem; margin-right: 0.5rem;"></i> Polling';
+            iniciarPolling();
+        };
+        
+        ws.onerror = (err) => {
+            console.error('WebSocket erro, usando polling:', err);
+            ws.close();
+        };
+    } catch (e) {
+        console.error('WebSocket indisponível, usando polling:', e);
+        iniciarPolling();
+    }
+}
+
+function iniciarPolling() {
+    if (pollingInterval) return;
+    usandoPolling = true;
+    document.getElementById('ws-status').className = 'tag is-warning is-medium';
+    document.getElementById('ws-status').innerHTML = '<i class="fas fa-sync fa-spin" style="font-size: 0.5rem; margin-right: 0.5rem;"></i> Polling';
+    
+    // Poll a cada 5 segundos
+    pollingInterval = setInterval(async () => {
+        try {
+            const resp = await fetch('/api/escalacoes/pendentes');
+            if (resp.ok) {
+                const pendentes = await resp.json();
+                const contAtual = document.querySelectorAll('.escalacao-card').length;
+                if (pendentes.length !== contAtual) {
+                    filtrarEscalacoes();
+                    atualizarMetricas();
+                    if (pendentes.length > contAtual) {
+                        showToast('Nova(s) escalação(ões) detectada(s)', 'warning');
+                        playNotificationSound();
+                    }
+                }
+            }
+        } catch (e) { /* silencioso */ }
+    }, 5000);
+}
+
+function processarMensagemWS(data) {
+    if (data.tipo === 'nova_escalacao') {
+        showToast(`Nova escalação: ${data.dados.tipo}`, 'warning');
+        playNotificationSound();
+        filtrarEscalacoes();
+        atualizarMetricas();
+    } else if (data.tipo === 'escalacao_atualizada') {
+        filtrarEscalacoes();
+        atualizarMetricas();
+    }
+}
+
+function playNotificationSound() {
+    try {
+        const audio = document.getElementById('notification-sound');
+        audio.play().catch(() => {});
+    } catch(e) {}
+}
+
+// ========== ESCALAÇÕES ==========
+async function filtrarEscalacoes() {
+    const status = document.getElementById('filtro-status').value;
+    const prioridade = document.getElementById('filtro-prioridade').value;
+    const tipo = document.getElementById('filtro-tipo').value;
+    
+    let url = '/api/escalacoes/?limite=50';
+    if (status) url += `&status=${status}`;
+    if (prioridade) url += `&prioridade=${prioridade}`;
+    if (tipo) url += `&tipo=${tipo}`;
+    
+    try {
+        const response = await fetch(url);
+        const escalacoes = await response.json();
+        renderizarEscalacoes(escalacoes);
+    } catch (e) {
+        console.error('Erro ao carregar escalações:', e);
+        document.getElementById('escalacoes-lista').innerHTML = `
+            <div class="notification is-danger is-light">
+                <i class="fas fa-exclamation-triangle"></i> Erro ao carregar escalações.
+            </div>`;
+    }
+}
+
+function renderizarEscalacoes(escalacoes) {
+    const container = document.getElementById('escalacoes-lista');
+    
+    if (!escalacoes || escalacoes.length === 0) {
+        container.innerHTML = `
+            <div class="box has-text-centered" style="padding: 3rem;">
+                <i class="fas fa-check-circle fa-3x" style="color: #10b981; margin-bottom: 1rem;"></i>
+                <p style="font-size: 1.1rem; color: #6b7280;">Nenhuma escalação encontrada com os filtros selecionados.</p>
+            </div>`;
+        return;
+    }
+    
+    let html = '';
+    for (const esc of escalacoes) {
+        const prioridadeCores = {
+            'urgente': { bg: '#fef2f2', border: '#ef4444', text: '#991b1b', badge: 'is-danger' },
+            'alta': { bg: '#fff7ed', border: '#f59e0b', text: '#92400e', badge: 'is-warning' },
+            'media': { bg: '#eff6ff', border: '#3b82f6', text: '#1e40af', badge: 'is-info' },
+            'baixa': { bg: '#f0fdf4', border: '#10b981', text: '#166534', badge: 'is-success is-light' },
+        };
+        const cor = prioridadeCores[esc.prioridade] || prioridadeCores['media'];
+        
+        const statusLabels = {
+            'pendente': '<span class="tag is-danger">Pendente</span>',
+            'em_atendimento': '<span class="tag is-warning">Em Atendimento</span>',
+            'respondida': '<span class="tag is-success">Respondida</span>',
+            'expirada': '<span class="tag is-light">Expirada</span>',
+            'assumida_humano': '<span class="tag is-info">Assumida</span>',
+            'devolvida_ia': '<span class="tag is-link is-light">Devolvida à IA</span>',
+        };
+        
+        const tipoLabels = {
+            'duvida_agendamento': 'Dúvida Agendamento',
+            'autorizacao_cancelamento': 'Autorização Cancelamento',
+            'informacao_erp': 'Informação ERP',
+            'excecao_politica': 'Exceção Política',
+            'reclamacao': 'Reclamação',
+            'cadastro_paciente': 'Cadastro Paciente',
+            'informacao_clinica': 'Informação Clínica',
+            'outro': 'Outro',
+        };
+        
+        const tempoEspera = esc.tempo_espera_ms 
+            ? `${Math.round(esc.tempo_espera_ms / 1000)}s` 
+            : calcularTempoEspera(esc.criado_em);
+        
+        html += `
+        <div class="box" style="border-left: 4px solid ${cor.border}; margin-bottom: 1rem; transition: all 0.2s;" 
+             onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" 
+             onmouseout="this.style.boxShadow='none'">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem;">
+                <div style="flex: 1; min-width: 300px;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                        ${statusLabels[esc.status] || ''}
+                        <span class="tag ${cor.badge}">${esc.prioridade.toUpperCase()}</span>
+                        <span class="tag is-light">${tipoLabels[esc.tipo] || esc.tipo}</span>
+                        <span style="color: #9ca3af; font-size: 0.8rem;">
+                            <i class="fas fa-clock"></i> ${tempoEspera}
+                        </span>
+                    </div>
+                    <div style="margin-bottom: 0.5rem;">
+                        <span style="font-weight: 600; color: var(--text-primary);">
+                            <i class="fas fa-phone"></i> ${esc.telefone_cliente}
+                        </span>
+                    </div>
+                    <div style="background: #f9fafb; padding: 0.75rem; border-radius: 8px; border-left: 3px solid #8b5cf6; color: var(--text-secondary); font-size: 0.9rem;">
+                        ${esc.pergunta_ia ? esc.pergunta_ia.substring(0, 300) : 'Sem contexto'}
+                        ${esc.pergunta_ia && esc.pergunta_ia.length > 300 ? '...' : ''}
+                    </div>
+                    ${esc.resposta_atendente ? `
+                    <div style="background: #f0fdf4; padding: 0.75rem; border-radius: 8px; border-left: 3px solid #10b981; color: #166534; font-size: 0.9rem; margin-top: 0.5rem;">
+                        <strong><i class="fas fa-user-tie"></i> Resposta:</strong> ${esc.resposta_atendente.substring(0, 200)}
+                    </div>` : ''}
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; min-width: 140px;">
+                    ${esc.status === 'pendente' ? `
+                    <button class="button is-success is-small" onclick="abrirModalResposta(${esc.id}, '${escapeHtml(esc.pergunta_ia || '')}', '${esc.telefone_cliente}')">
+                        <i class="fas fa-reply"></i>&nbsp;Responder
+                    </button>
+                    <button class="button is-info is-small" onclick="marcarEmAtendimento(${esc.id})">
+                        <i class="fas fa-hand-paper"></i>&nbsp;Assumir
+                    </button>` : ''}
+                    ${esc.status === 'em_atendimento' ? `
+                    <button class="button is-success is-small" onclick="abrirModalResposta(${esc.id}, '${escapeHtml(esc.pergunta_ia || '')}', '${esc.telefone_cliente}')">
+                        <i class="fas fa-reply"></i>&nbsp;Responder
+                    </button>
+                    <button class="button is-warning is-small" onclick="assumirConversa(${esc.id})">
+                        <i class="fas fa-user-shield"></i>&nbsp;Atender Direto
+                    </button>
+                    <button class="button is-light is-small" onclick="devolverIA(${esc.id})">
+                        <i class="fas fa-robot"></i>&nbsp;Devolver à IA
+                    </button>` : ''}
+                    ${esc.status === 'assumida_humano' ? `
+                    <a href="/atendente/escalacao/${esc.id}" class="button is-link is-small">
+                        <i class="fas fa-comments"></i>&nbsp;Ver Conversa
+                    </a>
+                    <button class="button is-light is-small" onclick="devolverIA(${esc.id})">
+                        <i class="fas fa-robot"></i>&nbsp;Devolver à IA
+                    </button>` : ''}
+                </div>
+            </div>
+        </div>`;
+    }
+    
+    container.innerHTML = html;
+}
+
+function calcularTempoEspera(criadoEm) {
+    const agora = new Date();
+    const criado = new Date(criadoEm);
+    const diff = Math.floor((agora - criado) / 1000);
+    
+    if (diff < 60) return `${diff}s`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}min`;
+    return `${Math.floor(diff / 3600)}h ${Math.floor((diff % 3600) / 60)}min`;
+}
+
+function escapeHtml(text) {
+    return text.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, ' ');
+}
+
+function limparFiltros() {
+    document.getElementById('filtro-status').value = '';
+    document.getElementById('filtro-prioridade').value = '';
+    document.getElementById('filtro-tipo').value = '';
+    filtrarEscalacoes();
+}
+
+// ========== AÇÕES ==========
+function abrirModalResposta(id, pergunta, telefone) {
+    document.getElementById('modal-escalacao-id').value = id;
+    document.getElementById('modal-pergunta').textContent = pergunta;
+    document.getElementById('modal-telefone').textContent = telefone;
+    document.getElementById('modal-resposta-texto').value = '';
+    document.getElementById('modal-resposta').classList.add('is-active');
+    document.getElementById('modal-resposta-texto').focus();
+}
+
+function fecharModal() {
+    document.getElementById('modal-resposta').classList.remove('is-active');
+}
+
+async function enviarResposta() {
+    const id = document.getElementById('modal-escalacao-id').value;
+    const resposta = document.getElementById('modal-resposta-texto').value.trim();
+    
+    if (!resposta) {
+        showToast('Digite uma resposta', 'danger');
+        return;
+    }
+    
+    const btn = document.getElementById('btn-enviar-resposta');
+    btn.classList.add('is-loading');
+    
+    try {
+        const response = await fetch(`/api/escalacoes/${id}/responder`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                resposta_atendente: resposta,
+                atendente_id: 'atendente_web'
+            })
+        });
+        
+        if (response.ok) {
+            showToast('Resposta enviada com sucesso!', 'success');
+            fecharModal();
+            filtrarEscalacoes();
+            atualizarMetricas();
+        } else {
+            const err = await response.json();
+            showToast(`Erro: ${err.detail || 'Falha ao enviar'}`, 'danger');
+        }
+    } catch (e) {
+        showToast('Erro de conexão', 'danger');
+    } finally {
+        btn.classList.remove('is-loading');
+    }
+}
+
+async function marcarEmAtendimento(id) {
+    try {
+        const response = await fetch(`/api/escalacoes/${id}/em-atendimento`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ atendente_id: 'atendente_web' })
+        });
+        if (response.ok) {
+            showToast('Escalação assumida', 'info');
+            filtrarEscalacoes();
+        }
+    } catch (e) {
+        showToast('Erro ao assumir', 'danger');
+    }
+}
+
+async function assumirConversa(id) {
+    if (!confirm('Assumir conversa diretamente? O paciente passará a ser atendido por você.')) return;
+    
+    try {
+        const response = await fetch(`/api/escalacoes/${id}/assumir`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ atendente_id: 'atendente_web' })
+        });
+        if (response.ok) {
+            showToast('Conversa assumida', 'success');
+            filtrarEscalacoes();
+        }
+    } catch (e) {
+        showToast('Erro ao assumir', 'danger');
+    }
+}
+
+async function devolverIA(id) {
+    if (!confirm('Devolver conversa para a IA?')) return;
+    
+    try {
+        const response = await fetch(`/api/escalacoes/${id}/devolver`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ atendente_id: 'atendente_web' })
+        });
+        if (response.ok) {
+            showToast('Devolvida à IA', 'info');
+            filtrarEscalacoes();
+        }
+    } catch (e) {
+        showToast('Erro ao devolver', 'danger');
+    }
+}
+
+// ========== MÉTRICAS ==========
+async function atualizarMetricas() {
+    try {
+        const response = await fetch('/api/escalacoes/metricas');
+        const metricas = await response.json();
+        
+        document.getElementById('metric-pendentes').textContent = metricas.pendentes || 0;
+        document.getElementById('metric-atendimento').textContent = metricas.em_atendimento || 0;
+        document.getElementById('metric-respondidas').textContent = metricas.respondidas || 0;
+        
+        const tempoMedio = metricas.tempo_medio_espera_ms 
+            ? `${Math.round(metricas.tempo_medio_espera_ms / 1000)}s` 
+            : '0s';
+        document.getElementById('metric-tempo-medio').textContent = tempoMedio;
+    } catch (e) {
+        console.error('Erro ao carregar métricas:', e);
+    }
+}
+
+// ========== TOAST ==========
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    
+    const colors = {
+        'success': '#10b981',
+        'danger': '#ef4444',
+        'warning': '#f59e0b',
+        'info': '#3b82f6'
+    };
+    
+    toast.style.cssText = `
+        background: ${colors[type] || colors.info}; color: white; padding: 0.75rem 1.5rem;
+        border-radius: 8px; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.9rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15); animation: slideIn 0.3s ease;
+        display: flex; align-items: center; gap: 0.5rem; min-width: 250px;
+    `;
+    toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-circle' : 'info-circle'}"></i> ${message}`;
+    
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s';
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
+}
+
+// ========== INICIALIZAÇÃO ==========
+document.addEventListener('DOMContentLoaded', () => {
+    conectarWebSocket();
+    filtrarEscalacoes();
+    atualizarMetricas();
+    
+    // Atualizar métricas a cada 30s
+    setInterval(atualizarMetricas, 30000);
+});
+</script>
+
+<style>
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+</style>
+{% endblock %}

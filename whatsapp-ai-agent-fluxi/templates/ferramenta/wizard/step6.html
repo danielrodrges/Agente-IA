@@ -1,0 +1,351 @@
+{% extends "ferramenta/wizard/base.html" %}
+
+{% block wizard_content %}
+<form method="POST" action="/ferramentas/wizard/step6">
+    <div class="columns">
+        <!-- SIDEBAR -->
+        <div class="column is-3">
+            <div class="box" style="position: sticky; top: 20px;">
+                <h3 class="title is-5">
+                    <span class="icon"><i class="fas fa-tags"></i></span>
+                    Campos Disponíveis
+                </h3>
+                
+                <!-- Tooltip -->
+                <div class="notification is-info is-light mb-4">
+                    <p class="is-size-7">
+                        <strong>💡 Como usar:</strong><br>
+                        Clique nos campos mapeados para inserir no Post Instruction.<br>
+                        <code>{campo}</code> será substituído pelo valor real.
+                    </p>
+                </div>
+
+                <!-- Campos Mapeados -->
+                <div class="mb-4">
+                    <p class="has-text-weight-bold mb-2">
+                        <span class="icon is-small"><i class="fas fa-check-circle"></i></span>
+                        Campos Mapeados:
+                    </p>
+                    {% if wizard_data.response_map %}
+                        <div class="buttons are-small" id="mapped_fields_buttons">
+                            <!-- Campos serão renderizados via JavaScript -->
+                        </div>
+                        <div class="notification is-success is-light mt-3">
+                            <p class="is-size-7">
+                                <strong>Exemplo:</strong><br>
+                                "O endereço é {rua}, {cidade}"
+                            </p>
+                        </div>
+                    {% else %}
+                        <p class="help">Nenhum campo mapeado no Step 5</p>
+                    {% endif %}
+                </div>
+
+                <hr>
+
+                <!-- Argumentos da Próxima Ferramenta -->
+                <div id="next_tool_args" style="display: none;">
+                    <p class="has-text-weight-bold mb-2">
+                        <span class="icon is-small"><i class="fas fa-arrow-right"></i></span>
+                        Argumentos da Próxima:
+                    </p>
+                    <div id="next_tool_args_list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div class="column is-9">
+            <div class="box">
+                <h2 class="title is-4">
+                    <i class="fas fa-paper-plane"></i> Destino da Resposta
+                </h2>
+                <p class="subtitle is-6">Defina para onde o resultado será enviado</p>
+
+                <div class="field">
+                    <label class="label">Para onde enviar o resultado? *</label>
+                    <div class="control">
+                        <label class="radio">
+                            <input type="radio" name="output" value="llm" id="output_llm"
+                                   {% if not wizard_data.output or wizard_data.output == 'llm' %}checked{% endif %}
+                                   onchange="toggleChannelSection()">
+                            <span class="icon"><i class="fas fa-brain"></i></span>
+                            <strong>LLM</strong> - A IA processa o resultado
+                        </label>
+                        <p class="help ml-5">O resultado volta para o LLM que formula uma resposta</p>
+                    </div>
+                    <div class="control mt-3">
+                        <label class="radio">
+                            <input type="radio" name="output" value="user" id="output_user"
+                                   {% if wizard_data.output == 'user' %}checked{% endif %}
+                                   onchange="toggleChannelSection()">
+                            <span class="icon"><i class="fas fa-user"></i></span>
+                            <strong>User</strong> - Envia direto ao usuário
+                        </label>
+                        <p class="help ml-5">O resultado é enviado diretamente no WhatsApp do usuário</p>
+                    </div>
+                    <div class="control mt-3">
+                        <label class="radio">
+                            <input type="radio" name="output" value="both" id="output_both"
+                                   {% if wizard_data.output == 'both' %}checked{% endif %}
+                                   onchange="toggleChannelSection()">
+                            <span class="icon"><i class="fas fa-arrows-alt-h"></i></span>
+                            <strong>Both</strong> - Ambos
+                        </label>
+                        <p class="help ml-5">Envia ao usuário E retorna para o LLM</p>
+                    </div>
+                </div>
+
+                <hr>
+
+                <!-- Canal (aparece se output inclui user) -->
+                <div id="channel_section" style="{% if wizard_data.output not in ['user', 'both'] %}display: none;{% endif %}">
+                    <h3 class="subtitle is-5">
+                        <i class="fas fa-tv"></i> Canal de Envio
+                    </h3>
+
+                    <div class="field">
+                        <label class="label">Tipo de Mensagem *</label>
+                        <div class="control">
+                            <div class="select is-fullwidth">
+                                <select name="channel">
+                                    <option value="text" {% if not wizard_data.channel or wizard_data.channel == 'text' %}selected{% endif %}>
+                                        📝 Texto
+                                    </option>
+                                    <option value="image" {% if wizard_data.channel == 'image' %}selected{% endif %}>
+                                        🖼️ Imagem
+                                    </option>
+                                    <option value="audio" {% if wizard_data.channel == 'audio' %}selected{% endif %}>
+                                        🎵 Áudio
+                                    </option>
+                                    <option value="video" {% if wizard_data.channel == 'video' %}selected{% endif %}>
+                                        🎬 Vídeo
+                                    </option>
+                                    <option value="document" {% if wizard_data.channel == 'document' %}selected{% endif %}>
+                                        📄 Documento
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                        <p class="help">Para imagem/áudio/vídeo/documento, o resultado deve conter URL, base64 ou path</p>
+                    </div>
+
+                    <hr>
+                </div>
+
+                <!-- Post Instruction -->
+                <h3 class="subtitle is-5">
+                    <i class="fas fa-comment-dots"></i> Instrução para IA (Opcional)
+                </h3>
+
+                <div class="field">
+                    <label class="label">Post Instruction</label>
+                    <div class="control">
+                        <textarea class="textarea" name="post_instruction" id="post_instruction" rows="4"
+                                  placeholder="Ex: Informe ao usuário o endereço completo: {rua}, {cidade} - {estado}">{{ wizard_data.post_instruction or '' }}</textarea>
+                    </div>
+                    <p class="help">Use os campos mapeados clicando nos botões da sidebar</p>
+                </div>
+
+                <hr>
+
+                <!-- Encadeamento -->
+                <h3 class="subtitle is-5">
+                    <i class="fas fa-link"></i> Encadeamento (Opcional)
+                </h3>
+
+                <div class="field">
+                    <label class="label">Próxima Ferramenta</label>
+                    <div class="control">
+                        <div class="select is-fullwidth">
+                            <select name="next_tool" id="next_tool_select" onchange="loadNextToolArgs()">
+                                <option value="">Nenhuma</option>
+                                {% for ferramenta in ferramentas %}
+                                <option value="{{ ferramenta.nome }}" 
+                                        data-params='{{ ferramenta.params or "{}" }}'
+                                        {% if wizard_data.next_tool == ferramenta.nome %}selected{% endif %}>
+                                    {{ ferramenta.nome }} - {{ ferramenta.descricao }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <p class="help">Se definido, esta ferramenta será executada automaticamente após a atual</p>
+                </div>
+
+                <!-- Mapeamento de argumentos da próxima ferramenta -->
+                <div id="next_tool_mapping" style="display: none;">
+                    <div class="notification is-warning is-light mt-3">
+                        <p class="has-text-weight-bold mb-2">
+                            <span class="icon"><i class="fas fa-exchange-alt"></i></span>
+                            Mapear Argumentos da Próxima Ferramenta
+                        </p>
+                        <p class="help mb-3">Defina quais campos desta ferramenta serão passados como argumentos para a próxima</p>
+                        <div id="next_tool_mapping_fields"></div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <!-- Dicas -->
+                <div class="notification is-info is-light">
+                    <p class="has-text-weight-bold">💡 Dicas:</p>
+                    <ul style="margin-left: 1.5rem;">
+                        <li><strong>output=llm:</strong> Use quando o LLM precisa processar o resultado</li>
+                        <li><strong>output=user:</strong> Use para enviar direto (ex: QR Code, imagem)</li>
+                        <li><strong>output=both:</strong> Use quando quer enviar E que o LLM comente sobre</li>
+                        <li><strong>post_instruction:</strong> Guia o LLM sobre como usar o resultado</li>
+                        <li><strong>next_tool:</strong> Cria pipelines de ferramentas encadeadas</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botões -->
+    <div class="field is-grouped is-grouped-right">
+        <div class="control">
+            <button type="submit" name="voltar" value="true" class="button is-light is-medium">
+                <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                <span>Voltar</span>
+            </button>
+        </div>
+        <div class="control">
+            <button type="submit" name="continuar" value="true" class="button is-primary is-medium">
+                <span>Próximo</span>
+                <span class="icon"><i class="fas fa-arrow-right"></i></span>
+            </button>
+        </div>
+    </div>
+</form>
+
+<script>
+let lastFocusedTextarea = null;
+
+// Rastrear textarea focado
+document.addEventListener('focusin', function(e) {
+    if (e.target.tagName === 'TEXTAREA') {
+        lastFocusedTextarea = e.target;
+    }
+});
+
+// Inserir no cursor
+function insertAtCursor(text) {
+    const textarea = lastFocusedTextarea || document.getElementById('post_instruction');
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const value = textarea.value;
+    
+    textarea.value = value.substring(0, start) + text + value.substring(end);
+    textarea.focus();
+    textarea.selectionStart = textarea.selectionEnd = start + text.length;
+}
+
+// Toggle channel section
+function toggleChannelSection() {
+    const output = document.querySelector('input[name="output"]:checked').value;
+    const channelSection = document.getElementById('channel_section');
+    
+    if (output === 'user' || output === 'both') {
+        channelSection.style.display = 'block';
+    } else {
+        channelSection.style.display = 'none';
+    }
+}
+
+// Load next tool args
+function loadNextToolArgs() {
+    const select = document.getElementById('next_tool_select');
+    const selectedOption = select.options[select.selectedIndex];
+    const nextToolArgs = document.getElementById('next_tool_args');
+    const nextToolMapping = document.getElementById('next_tool_mapping');
+    const mappingFields = document.getElementById('next_tool_mapping_fields');
+    
+    if (!selectedOption.value) {
+        nextToolArgs.style.display = 'none';
+        nextToolMapping.style.display = 'none';
+        return;
+    }
+    
+    try {
+        const params = JSON.parse(selectedOption.dataset.params || '{}');
+        
+        if (Object.keys(params).length > 0) {
+            nextToolMapping.style.display = 'block';
+            mappingFields.innerHTML = '';
+            
+            // Pegar campos mapeados da ferramenta atual
+            const currentFields = {{ wizard_data.response_map | tojson | safe }} || {};
+            const mappedFieldNames = Object.values(currentFields);
+            
+            for (const [paramName, paramConfig] of Object.entries(params)) {
+                const div = document.createElement('div');
+                div.className = 'field has-addons mb-2';
+                div.innerHTML = `
+                    <div class="control">
+                        <span class="button is-static">${paramName}</span>
+                    </div>
+                    <div class="control is-expanded">
+                        <div class="select is-fullwidth">
+                            <select name="next_tool_arg_${paramName}">
+                                <option value="">-- Selecione --</option>
+                                ${mappedFieldNames.map(field => `<option value="{${field}}">{${field}}</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+                `;
+                mappingFields.appendChild(div);
+            }
+        } else {
+            nextToolMapping.style.display = 'none';
+        }
+    } catch (e) {
+        console.error('Erro ao parsear params:', e);
+        nextToolMapping.style.display = 'none';
+    }
+}
+
+// Renderizar campos mapeados
+function renderMappedFields() {
+    const container = document.getElementById('mapped_fields_buttons');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    // Parse response_map
+    let responseMap = {};
+    try {
+        const responseMapStr = {{ wizard_data.response_map | tojson | safe }};
+        if (typeof responseMapStr === 'string') {
+            responseMap = JSON.parse(responseMapStr);
+        } else if (typeof responseMapStr === 'object' && responseMapStr !== null) {
+            responseMap = responseMapStr;
+        }
+    } catch (e) {
+        console.error('Erro ao parsear response_map:', e);
+        return;
+    }
+    
+    // Renderizar botões
+    for (const [source, target] of Object.entries(responseMap)) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'button is-success is-light is-fullwidth mb-2';
+        btn.innerHTML = `
+            <span class="icon"><i class="fas fa-plus-circle"></i></span>
+            <span>{${target}}</span>
+        `;
+        btn.onclick = () => insertAtCursor(`{${target}}`);
+        container.appendChild(btn);
+    }
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    renderMappedFields();
+    loadNextToolArgs();
+});
+</script>
+{% endblock %}

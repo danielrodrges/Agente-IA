@@ -1,0 +1,31 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "50mb",
+        "runtime": "python3.12"
+      }
+    },
+    {
+      "src": "whatsapp-ai-agent-fluxi/static/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/whatsapp-ai-agent-fluxi/static/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/api/index.py"
+    }
+  ],
+  "installCommand": "pip install -r whatsapp-ai-agent-fluxi/requirements-vercel.txt",
+  "env": {
+    "PYTHONPATH": "whatsapp-ai-agent-fluxi"
+  }
+}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Tools - {{ mcp_client.nome }} - Fluxi.IA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 class="title is-3" style="margin-bottom: 0.5rem; color: #1f2937;">
+        <i class="fas fa-magic" style="color: #8b5cf6;"></i> Tools - {{ mcp_client.nome }}
+    </h1>
+    <nav style="font-size: 0.875rem; color: #9ca3af;">
+        <a href="/mcp/agente/{{ agente.id }}/clients" style="color: #6b7280;">← Voltar aos MCP Clients</a>
+    </nav>
+</div>
+
+{% if tools %}
+<div class="box" style="padding: 0;">
+    <table class="table is-fullwidth">
+        <thead>
+            <tr>
+                <th>Tool</th>
+                <th>Descrição</th>
+                <th>Parâmetros</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tool in tools %}
+            <tr>
+                <td>
+                    <strong>{{ tool.display_name or tool.name }}</strong><br>
+                    <code style="font-size: 0.75rem;">mcp_{{ mcp_client.id }}_{{ tool.name }}</code>
+                </td>
+                <td>{{ tool.description }}</td>
+                <td>
+                    {% set param_count = tool.input_schema.properties|length if tool.input_schema and tool.input_schema.properties else 0 %}
+                    {{ param_count }} parâmetro{{ 's' if param_count != 1 else '' }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div style="text-align: center; padding: 3rem;">
+    <p>Nenhuma tool encontrada</p>
+    <button onclick="location.reload()" class="button is-primary">Recarregar</button>
+</div>
+{% endif %}
+
+{% endblock %}

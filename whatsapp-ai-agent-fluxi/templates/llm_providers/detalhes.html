@@ -1,0 +1,732 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titulo }} - Fluxi.IA{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="level">
+        <div class="level-left">
+            <div class="level-item">
+                <h1 class="title is-3">
+                    <i class="fas fa-server"></i>
+                    {{ provedor.nome }}
+                    {% if provedor.ativo %}
+                        <span class="tag is-success">Ativo</span>
+                    {% else %}
+                        <span class="tag is-danger">Inativo</span>
+                    {% endif %}
+                </h1>
+            </div>
+        </div>
+        <div class="level-right">
+            <div class="level-item">
+                <div class="buttons">
+                    <form method="POST" action="/provedores-llm/{{ provedor.id }}/testar" style="display: inline;">
+                        <button type="submit" class="button is-info">
+                            <span class="icon">
+                                <i class="fas fa-sync"></i>
+                            </span>
+                            <span>Atualizar Modelos</span>
+                        </button>
+                    </form>
+                    <form method="POST" action="/provedores-llm/{{ provedor.id }}/deletar" 
+                          onsubmit="return confirm('Tem certeza que deseja deletar este provedor? Esta ação não pode ser desfeita.');">
+                        <button type="submit" class="button is-danger">
+                            <span class="icon">
+                                <i class="fas fa-trash"></i>
+                            </span>
+                            <span>Deletar</span>
+                        </button>
+                    </form>
+                    <a href="/provedores-llm" class="button is-light">
+                        <span class="icon">
+                            <i class="fas fa-arrow-left"></i>
+                        </span>
+                        <span>Voltar</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mensagens -->
+    {% if erro %}
+    <div class="notification is-danger is-light">
+        <button class="delete"></button>
+        <strong>Erro:</strong> {{ erro }}
+    </div>
+    {% endif %}
+    
+    {% if sucesso %}
+    <div class="notification is-success is-light">
+        <button class="delete"></button>
+        {{ sucesso }}
+    </div>
+    {% endif %}
+
+    <!-- Tabs -->
+    <div class="tabs is-boxed is-medium">
+        <ul>
+            <li class="is-active" data-tab="testar">
+                <a>
+                    <span class="icon is-small"><i class="fas fa-play"></i></span>
+                    <span>Testar</span>
+                </a>
+            </li>
+            <li data-tab="modelos">
+                <a>
+                    <span class="icon is-small"><i class="fas fa-cube"></i></span>
+                    <span>Modelos ({{ modelos|length }})</span>
+                </a>
+            </li>
+            <li data-tab="configurar">
+                <a>
+                    <span class="icon is-small"><i class="fas fa-cog"></i></span>
+                    <span>Configurar</span>
+                </a>
+            </li>
+            <li data-tab="estatisticas">
+                <a>
+                    <span class="icon is-small"><i class="fas fa-chart-line"></i></span>
+                    <span>Estatísticas</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Tab Content: Testar -->
+    <div class="tab-content is-active" data-content="testar">
+        <div class="columns">
+            <!-- Formulário de Teste -->
+            <div class="column is-half">
+                <div class="box">
+                    <h3 class="title is-5">
+                        <i class="fas fa-paper-plane"></i>
+                        Enviar Mensagem de Teste
+                    </h3>
+                    
+                    <form id="form-teste" method="POST" action="/provedores-llm/{{ provedor.id }}/enviar-teste">
+                        <div class="field">
+                            <label class="label">Modelo</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select name="modelo" required>
+                                        <option value="">Selecione um modelo</option>
+                                        {% for modelo in modelos %}
+                                        <option value="{{ modelo.modelo_id }}">{{ modelo.nome }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            {% if not modelos %}
+                            <p class="help has-text-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Nenhum modelo disponível. Clique em "Atualizar Modelos" no topo da página.
+                            </p>
+                            {% endif %}
+                        </div>
+
+                        <div class="field">
+                            <label class="label">Mensagem</label>
+                            <div class="control">
+                                <textarea class="textarea" name="mensagem" 
+                                          placeholder="Digite sua mensagem..." 
+                                          rows="5" required>Olá! Como você está?</textarea>
+                            </div>
+                        </div>
+
+                        <div class="columns">
+                            <div class="column">
+                                <div class="field">
+                                    <label class="label">Temperatura</label>
+                                    <div class="control">
+                                        <input class="input" type="number" name="temperatura" 
+                                               value="0.7" min="0" max="2" step="0.1">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="field">
+                                    <label class="label">Max Tokens</label>
+                                    <div class="control">
+                                        <input class="input" type="number" name="max_tokens" 
+                                               value="2000" min="1" max="100000">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <div class="control">
+                                <button type="submit" class="button is-primary is-fullwidth" 
+                                        {% if not modelos %}disabled{% endif %}>
+                                    <span class="icon">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </span>
+                                    <span>Enviar Teste</span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Info do Provedor -->
+                <div class="box">
+                    <h3 class="title is-6">
+                        <i class="fas fa-info-circle"></i>
+                        Informações Rápidas
+                    </h3>
+                    <div class="content is-small">
+                        <p><strong>URL:</strong> <code>{{ provedor.base_url }}</code></p>
+                        {% if provedor.ultimo_teste %}
+                        <p><strong>Último teste:</strong> {{ provedor.ultimo_teste.strftime('%d/%m/%Y %H:%M') }}</p>
+                        {% endif %}
+                        <p><strong>Modelos:</strong> {{ modelos|length }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Área de Resultado -->
+            <div class="column is-half">
+                <div class="box" style="min-height: 400px;">
+                    <h3 class="title is-5">
+                        <i class="fas fa-comment-dots"></i>
+                        Resposta do Modelo
+                    </h3>
+                    
+                    <div id="resultado-teste" class="content">
+                        <div class="has-text-centered" style="padding: 3rem;">
+                            <span class="icon is-large has-text-grey-light">
+                                <i class="fas fa-robot fa-3x"></i>
+                            </span>
+                            <p class="has-text-grey">Envie uma mensagem de teste para ver a resposta aqui</p>
+                        </div>
+                    </div>
+                    
+                    <div id="metricas-teste" style="display: none;">
+                        <hr>
+                        <div class="columns is-mobile">
+                            <div class="column">
+                                <p class="heading">Tempo</p>
+                                <p class="title is-6" id="tempo-resposta">-</p>
+                            </div>
+                            <div class="column">
+                                <p class="heading">Tokens</p>
+                                <p class="title is-6" id="tokens-usados">-</p>
+                            </div>
+                            <div class="column">
+                                <p class="heading">Modelo</p>
+                                <p class="title is-6" id="modelo-usado">-</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Content: Modelos -->
+    <div class="tab-content" data-content="modelos">
+        <div class="box">
+            <div class="level">
+                <div class="level-left">
+                    <div class="level-item">
+                        <h3 class="title is-5">
+                            <i class="fas fa-cube"></i>
+                            Modelos Disponíveis
+                        </h3>
+                    </div>
+                </div>
+                <div class="level-right">
+                    <div class="level-item">
+                        <form method="POST" action="/provedores-llm/{{ provedor.id }}/testar" style="display: inline;">
+                            <button type="submit" class="button is-info">
+                                <span class="icon">
+                                    <i class="fas fa-sync"></i>
+                                </span>
+                                <span>Atualizar Lista</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            {% if modelos %}
+            <div class="table-container">
+                <table class="table is-fullwidth is-striped is-hoverable">
+                    <thead>
+                        <tr>
+                            <th>Nome do Modelo</th>
+                            <th>Contexto</th>
+                            <th>Recursos</th>
+                            <th>Tamanho</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for modelo in modelos %}
+                        <tr>
+                            <td>
+                                <strong>{{ modelo.nome }}</strong>
+                                {% if modelo.quantizacao %}
+                                <br><small class="has-text-grey">{{ modelo.quantizacao }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if modelo.contexto %}
+                                    {{ modelo.contexto }} tokens
+                                {% else %}
+                                    <span class="has-text-grey">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="tags">
+                                    {% if modelo.suporta_imagens %}
+                                        <span class="tag is-success is-small">
+                                            <i class="fas fa-image"></i> Imagens
+                                        </span>
+                                    {% endif %}
+                                    {% if modelo.suporta_ferramentas %}
+                                        <span class="tag is-info is-small">
+                                            <i class="fas fa-tools"></i> Ferramentas
+                                        </span>
+                                    {% endif %}
+                                    {% if not modelo.suporta_imagens and not modelo.suporta_ferramentas %}
+                                        <span class="has-text-grey">-</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                {% if modelo.tamanho %}
+                                    {{ modelo.tamanho }}
+                                {% else %}
+                                    <span class="has-text-grey">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if modelo.ativo %}
+                                    <span class="tag is-success">Ativo</span>
+                                {% else %}
+                                    <span class="tag is-light">Inativo</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="content has-text-centered" style="padding: 3rem;">
+                <span class="icon is-large has-text-grey">
+                    <i class="fas fa-cube fa-3x"></i>
+                </span>
+                <h3 class="title is-4 has-text-grey">Nenhum modelo encontrado</h3>
+                <p class="has-text-grey">Clique em "Atualizar Lista" para buscar os modelos disponíveis no provedor.</p>
+                <br>
+                <form method="POST" action="/provedores-llm/{{ provedor.id }}/testar" style="display: inline;">
+                    <button type="submit" class="button is-primary is-large">
+                        <span class="icon">
+                            <i class="fas fa-sync"></i>
+                        </span>
+                        <span>Buscar Modelos</span>
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Tab Content: Configurar -->
+    <div class="tab-content" data-content="configurar">
+        <div class="columns">
+            <div class="column is-two-thirds">
+                <div class="box">
+                    <h3 class="title is-5">
+                        <i class="fas fa-cog"></i>
+                        Configurações do Provedor
+                    </h3>
+                    
+                    <form method="POST" action="/provedores-llm/salvar">
+                        <input type="hidden" name="acao" value="editar">
+                        <input type="hidden" name="provedor_id" value="{{ provedor.id }}">
+                        
+                        <div class="field">
+                            <label class="label">Nome do Provedor</label>
+                            <div class="control">
+                                <input class="input" type="text" name="nome" 
+                                       value="{{ provedor.nome }}" required>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="label">URL Base</label>
+                            <div class="control">
+                                <input class="input" type="url" name="base_url" 
+                                       value="{{ provedor.base_url }}" required>
+                            </div>
+                            <p class="help">
+                                Exemplos: http://localhost:1234 (LM Studio) | http://localhost:8080 (llama.cpp) | http://localhost:11434 (Ollama)
+                            </p>
+                        </div>
+
+                        <div class="field">
+                            <label class="label">API Key (Opcional)</label>
+                            <div class="control">
+                                <input class="input" type="text" name="api_key" 
+                                       value="{{ provedor.api_key or '' }}" 
+                                       placeholder="Deixe em branco se não necessário">
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="label">Descrição</label>
+                            <div class="control">
+                                <textarea class="textarea" name="descricao" 
+                                          placeholder="Descrição opcional">{{ provedor.descricao or '' }}</textarea>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <div class="control">
+                                <label class="checkbox">
+                                    <input type="checkbox" name="ativo" value="true" 
+                                           {% if provedor.ativo %}checked{% endif %}>
+                                    Provedor ativo
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="field is-grouped">
+                            <div class="control">
+                                <button type="submit" class="button is-primary">
+                                    <span class="icon">
+                                        <i class="fas fa-save"></i>
+                                    </span>
+                                    <span>Salvar Alterações</span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="column is-one-third">
+                <div class="box">
+                    <h3 class="title is-6">
+                        <i class="fas fa-info-circle"></i>
+                        Informações do Sistema
+                    </h3>
+                    <div class="content is-small">
+                        <p><strong>Criado em:</strong><br>
+                        {{ provedor.criado_em.strftime('%d/%m/%Y %H:%M') if provedor.criado_em else '-' }}</p>
+                        
+                        {% if provedor.atualizado_em %}
+                        <p><strong>Atualizado em:</strong><br>
+                        {{ provedor.atualizado_em.strftime('%d/%m/%Y %H:%M') }}</p>
+                        {% endif %}
+                        
+                        {% if provedor.ultimo_teste %}
+                        <p><strong>Último teste:</strong><br>
+                        {{ provedor.ultimo_teste.strftime('%d/%m/%Y %H:%M') }}</p>
+                        {% endif %}
+                        
+                        <p><strong>Status:</strong><br>
+                        {% if provedor.status %}
+                            {% if provedor.status.value == 'ativo' %}
+                                <span class="tag is-success">Conectado</span>
+                            {% elif provedor.status.value == 'erro' %}
+                                <span class="tag is-danger">Erro de Conexão</span>
+                            {% else %}
+                                <span class="tag is-warning">Não Testado</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="tag is-light">Desconhecido</span>
+                        {% endif %}
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="box">
+                    <h3 class="title is-6">
+                        <i class="fas fa-question-circle"></i>
+                        Provedores Suportados
+                    </h3>
+                    <div class="content is-small">
+                        <ul>
+                            <li><strong>LM Studio</strong> - http://localhost:1234</li>
+                            <li><strong>llama.cpp</strong> - http://localhost:8080</li>
+                            <li><strong>Ollama</strong> - http://localhost:11434</li>
+                            <li><strong>OpenRouter</strong> - https://openrouter.ai/api/v1</li>
+                            <li><strong>OpenAI</strong> - https://api.openai.com/v1</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Content: Estatísticas -->
+    <div class="tab-content" data-content="estatisticas">
+        {% if estatisticas and estatisticas.total_requisicoes > 0 %}
+        <div class="columns">
+            <div class="column is-one-quarter">
+                <div class="box has-text-centered">
+                    <p class="heading">Total de Requisições</p>
+                    <p class="title is-3">{{ estatisticas.total_requisicoes }}</p>
+                </div>
+            </div>
+            <div class="column is-one-quarter">
+                <div class="box has-text-centered">
+                    <p class="heading">Sucessos</p>
+                    <p class="title is-3 has-text-success">{{ estatisticas.requisicoes_sucesso }}</p>
+                </div>
+            </div>
+            <div class="column is-one-quarter">
+                <div class="box has-text-centered">
+                    <p class="heading">Erros</p>
+                    <p class="title is-3 has-text-danger">{{ estatisticas.requisicoes_erro }}</p>
+                </div>
+            </div>
+            <div class="column is-one-quarter">
+                <div class="box has-text-centered">
+                    <p class="heading">Tempo Médio</p>
+                    <p class="title is-3">{{ "%.0f"|format(estatisticas.tempo_medio_ms) }}ms</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="columns">
+            <div class="column is-full">
+                <div class="box">
+                    <h3 class="title is-5">
+                        <i class="fas fa-percentage"></i>
+                        Taxa de Sucesso
+                    </h3>
+                    
+                    {% set taxa_sucesso = (estatisticas.requisicoes_sucesso / estatisticas.total_requisicoes * 100) %}
+                    <div class="columns is-vcentered">
+                        <div class="column is-four-fifths">
+                            <progress class="progress is-large {% if taxa_sucesso >= 90 %}is-success{% elif taxa_sucesso >= 70 %}is-warning{% else %}is-danger{% endif %}" 
+                                      value="{{ taxa_sucesso }}" 
+                                      max="100">{{ taxa_sucesso }}%</progress>
+                        </div>
+                        <div class="column">
+                            <p class="title is-2 has-text-centered">{{ "%.1f"|format(taxa_sucesso) }}%</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="columns">
+            <div class="column is-half">
+                <div class="box">
+                    <h3 class="title is-5">
+                        <i class="fas fa-clock"></i>
+                        Informações Temporais
+                    </h3>
+                    
+                    <div class="content">
+                        {% if estatisticas.ultima_requisicao %}
+                        <p>
+                            <strong>Última Requisição:</strong><br>
+                            {{ estatisticas.ultima_requisicao.strftime('%d/%m/%Y às %H:%M:%S') }}
+                        </p>
+                        {% endif %}
+                        
+                        <p>
+                            <strong>Tempo Médio de Resposta:</strong><br>
+                            {{ "%.0f"|format(estatisticas.tempo_medio_ms) }} milissegundos
+                        </p>
+                        
+                        <p>
+                            <strong>Performance:</strong><br>
+                            {% if estatisticas.tempo_medio_ms < 1000 %}
+                                <span class="tag is-success">Excelente (&lt; 1s)</span>
+                            {% elif estatisticas.tempo_medio_ms < 3000 %}
+                                <span class="tag is-warning">Bom (1-3s)</span>
+                            {% else %}
+                                <span class="tag is-danger">Lento (&gt; 3s)</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="column is-half">
+                <div class="box">
+                    <h3 class="title is-5">
+                        <i class="fas fa-chart-pie"></i>
+                        Distribuição de Requisições
+                    </h3>
+                    
+                    <div class="content">
+                        <div class="columns is-mobile">
+                            <div class="column">
+                                <div class="has-text-centered">
+                                    <p class="title is-4 has-text-success">{{ estatisticas.requisicoes_sucesso }}</p>
+                                    <p class="heading">Sucesso</p>
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="has-text-centered">
+                                    <p class="title is-4 has-text-danger">{{ estatisticas.requisicoes_erro }}</p>
+                                    <p class="heading">Erro</p>
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="has-text-centered">
+                                    <p class="title is-4">{{ estatisticas.total_requisicoes }}</p>
+                                    <p class="heading">Total</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="box has-text-centered" style="padding: 5rem;">
+            <span class="icon is-large has-text-grey-light">
+                <i class="fas fa-chart-line fa-4x"></i>
+            </span>
+            <h3 class="title is-3 has-text-grey">Nenhuma estatística disponível</h3>
+            <p class="subtitle has-text-grey">Use a aba "Testar" para enviar requisições e gerar estatísticas de uso.</p>
+            <br>
+            <a href="#" onclick="document.querySelector('[data-tab=testar]').click(); return false;" class="button is-primary is-large">
+                <span class="icon">
+                    <i class="fas fa-play"></i>
+                </span>
+                <span>Ir para Teste</span>
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Sistema de Tabs
+document.addEventListener('DOMContentLoaded', () => {
+    const tabs = document.querySelectorAll('.tabs li');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const targetTab = tab.getAttribute('data-tab');
+            
+            // Remove active class from all tabs
+            tabs.forEach(t => t.classList.remove('is-active'));
+            tabContents.forEach(tc => tc.classList.remove('is-active'));
+            
+            // Add active class to clicked tab
+            tab.classList.add('is-active');
+            document.querySelector(`[data-content="${targetTab}"]`).classList.add('is-active');
+        });
+    });
+    
+    // Auto-dismiss notifications
+    const deleteButtons = document.querySelectorAll('.notification .delete');
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            button.parentElement.remove();
+        });
+    });
+    
+    // AJAX para envio de teste
+    const formTeste = document.getElementById('form-teste');
+    if (formTeste) {
+        formTeste.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const resultadoDiv = document.getElementById('resultado-teste');
+            const metricasDiv = document.getElementById('metricas-teste');
+            const submitBtn = formTeste.querySelector('button[type="submit"]');
+            
+            // Mostrar loading
+            submitBtn.classList.add('is-loading');
+            submitBtn.disabled = true;
+            
+            resultadoDiv.innerHTML = `
+                <div class="has-text-centered" style="padding: 3rem;">
+                    <span class="icon is-large has-text-info">
+                        <i class="fas fa-spinner fa-pulse fa-3x"></i>
+                    </span>
+                    <p class="has-text-grey">Aguardando resposta...</p>
+                </div>
+            `;
+            
+            try {
+                const formData = new FormData(formTeste);
+                const response = await fetch(formTeste.action + '?ajax=1', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.sucesso) {
+                    // Mostrar resultado
+                    resultadoDiv.innerHTML = `
+                        <div class="message is-success">
+                            <div class="message-header">
+                                <p>Resposta do Modelo</p>
+                            </div>
+                            <div class="message-body" style="white-space: pre-wrap;">${data.conteudo}</div>
+                        </div>
+                    `;
+                    
+                    // Mostrar métricas
+                    document.getElementById('tempo-resposta').textContent = data.tempo_ms + 'ms';
+                    document.getElementById('tokens-usados').textContent = data.tokens || '-';
+                    document.getElementById('modelo-usado').textContent = data.modelo || '-';
+                    metricasDiv.style.display = 'block';
+                } else {
+                    // Mostrar erro
+                    resultadoDiv.innerHTML = `
+                        <div class="message is-danger">
+                            <div class="message-header">
+                                <p>Erro</p>
+                            </div>
+                            <div class="message-body">${data.erro}</div>
+                        </div>
+                    `;
+                    metricasDiv.style.display = 'none';
+                }
+            } catch (error) {
+                resultadoDiv.innerHTML = `
+                    <div class="message is-danger">
+                        <div class="message-header">
+                            <p>Erro de Conexão</p>
+                        </div>
+                        <div class="message-body">Não foi possível enviar a requisição: ${error.message}</div>
+                    </div>
+                `;
+                metricasDiv.style.display = 'none';
+            } finally {
+                submitBtn.classList.remove('is-loading');
+                submitBtn.disabled = false;
+            }
+        });
+    }
+});
+</script>
+
+<style>
+.tab-content {
+    display: none;
+}
+
+.tab-content.is-active {
+    display: block;
+}
+
+.tabs li {
+    cursor: pointer;
+}
+
+.box {
+    box-shadow: 0 2px 3px rgba(10, 10, 10, 0.1);
+}
+</style>
+{% endblock %}

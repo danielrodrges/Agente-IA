@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block title %}Ferramentas - {{ agente.nome }} - Fluxi.IA{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div style="margin-bottom: 2rem;">
+    <nav class="breadcrumb" aria-label="breadcrumbs" style="margin-bottom: 0.75rem !important;">
+        <ul style="margin-bottom: 0 !important;">
+            <li><a href="/sessoes" style="color: #6b7280;"><i class="fas fa-home"></i> Sessões</a></li>
+            <li><a href="/sessoes/{{ sessao.id }}/detalhes" style="color: #6b7280;">{{ sessao.nome }}</a></li>
+            <li><a href="/agentes/sessao/{{ sessao.id }}" style="color: #6b7280;">Agentes</a></li>
+            <li class="is-active"><a style="color: #C75B9B;">Ferramentas</a></li>
+        </ul>
+    </nav>
+    <h1 class="title is-3" style="margin-bottom: 0.75rem !important; line-height: 1.2;">
+        <i class="fas fa-tools" style="color: #8b5cf6;"></i> Ferramentas do Agente
+    </h1>
+    <p class="subtitle is-6" style="color: #6b7280; margin-bottom: 0 !important; line-height: 1.4;">
+        Configure quais ações o agente pode executar (máximo 20)
+    </p>
+</div>
+
+<!-- Info do Agente -->
+<div class="box" style="background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border: 2px solid #e5e7eb; margin-bottom: 2rem;">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem;">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="width: 56px; height: 56px; border-radius: 12px; background: linear-gradient(135deg, #5B4E9B 0%, #C75B9B 100%); display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-robot" style="color: white; font-size: 1.5rem;"></i>
+            </div>
+            <div>
+                <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.25rem;">Agente</p>
+                <p style="font-size: 1.125rem; font-weight: 700; color: #1f2937;">#{{ agente.codigo }} - {{ agente.nome }}</p>
+            </div>
+        </div>
+        <div style="text-align: center; padding: 1rem 1.5rem; background: white; border-radius: 12px; border: 2px solid #8b5cf6;">
+            <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.25rem;">Ferramentas Selecionadas</p>
+            <p style="font-size: 2rem; font-weight: 700;">
+                <span id="contador" style="background: linear-gradient(135deg, #8b5cf6 0%, #C75B9B 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">{{ total_selecionadas }}</span>
+                <span style="color: #d1d5db; font-size: 1.5rem;"> / 20</span>
+            </p>
+        </div>
+    </div>
+</div>
+
+<form method="POST" action="/agentes/{{ agente.id }}/ferramentas/atualizar" id="formFerramentas">
+    <div class="box" style="margin-bottom: 2rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb; flex-wrap: wrap; gap: 1rem;">
+            <h2 class="title is-5" style="margin-bottom: 0;">
+                <i class="fas fa-list" style="color: #8b5cf6;"></i> Ferramentas Disponíveis
+            </h2>
+            {% if todas_ferramentas %}
+            <label class="checkbox" style="background: #f9fafb; padding: 0.75rem 1.25rem; border-radius: 8px; cursor: pointer; border: 2px solid #e5e7eb;">
+                <input type="checkbox" id="selecionarTodas" style="margin-right: 0.5rem;">
+                <strong style="color: #1f2937;"><i class="fas fa-check-double"></i> Selecionar/Desselecionar Todas</strong>
+            </label>
+            {% endif %}
+        </div>
+        
+        {% if todas_ferramentas %}
+            
+        <div class="columns is-multiline">
+            {% for ferramenta in todas_ferramentas %}
+            <div class="column is-12-mobile is-6-tablet is-4-desktop">
+                <div class="box ferramenta-box" style="height: 100%; transition: all 0.3s; {% if ferramenta.id in ferramentas_agente_ids %}background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 2px solid #8b5cf6;{% else %}border: 2px solid #e5e7eb;{% endif %}">
+                    <label class="checkbox" style="display: flex; align-items: start; gap: 0.75rem; cursor: pointer;">
+                        <input type="checkbox" 
+                               name="ferramenta_{{ ferramenta.id }}" 
+                               class="ferramenta-checkbox"
+                               {% if ferramenta.id in ferramentas_agente_ids %}checked{% endif %}
+                               style="margin-top: 0.25rem; transform: scale(1.2);">
+                        <div style="flex: 1;">
+                            <p style="font-weight: 700; color: #1f2937; margin-bottom: 0.5rem; font-size: 1rem;">
+                                <i class="fas fa-wrench" style="color: #8b5cf6;"></i> {{ ferramenta.nome }}
+                            </p>
+                            <p style="color: #6b7280; font-size: 0.875rem; line-height: 1.6;">{{ ferramenta.descricao }}</p>
+                        </div>
+                    </label>
+                    
+                    <!-- Detalhes da ferramenta -->
+                    <details class="mt-3" style="border-top: 1px solid #e5e7eb; padding-top: 0.75rem;">
+                        <summary style="cursor: pointer; color: #8b5cf6; font-size: 0.875rem; font-weight: 600;">
+                            <i class="fas fa-code"></i> Ver definição JSON
+                        </summary>
+                        <div style="margin-top: 0.75rem;">
+                            <pre style="background: #1f2937; color: #10b981; padding: 0.75rem; border-radius: 8px; font-size: 0.75rem; max-height: 200px; overflow-y: auto; line-height: 1.4;">{{ ferramenta.definicao_json }}</pre>
+                        </div>
+                    </details>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 4rem 2rem; background: white; border: 2px dashed #e5e7eb; border-radius: 12px;">
+            <div style="margin-bottom: 1.5rem;">
+                <span style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(199, 91, 155, 0.1) 100%); display: inline-flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-tools" style="font-size: 2.5rem; background: linear-gradient(135deg, #8b5cf6 0%, #C75B9B 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"></i>
+                </span>
+            </div>
+            <h3 class="title is-4" style="margin-bottom: 0.75rem;">Nenhuma ferramenta disponível</h3>
+            <p style="color: #6b7280; margin-bottom: 2rem;">
+                Você precisa criar ferramentas no sistema antes de atribuí-las aos agentes.
+            </p>
+            <a href="/ferramentas" class="button is-primary is-medium" style="background: linear-gradient(135deg, #8b5cf6 0%, #C75B9B 100%); border: none; border-radius: 8px; font-weight: 600;">
+                <span class="icon"><i class="fas fa-plus-circle"></i></span>
+                <span>Criar Ferramentas</span>
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Botões -->
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+        <button type="submit" class="button is-primary is-medium" id="btnSalvar" style="background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); border: none; border-radius: 8px; font-weight: 600; padding: 0.75rem 2rem;">
+            <span class="icon"><i class="fas fa-save"></i></span>
+            <span>Salvar Ferramentas</span>
+        </button>
+        <a href="/agentes/sessao/{{ sessao.id }}" class="button is-medium" style="border-radius: 8px; font-weight: 600; padding: 0.75rem 2rem;">
+            <span class="icon"><i class="fas fa-arrow-left"></i></span>
+            <span>Voltar</span>
+        </a>
+    </div>
+</form>
+
+<!-- Footer de Documentação -->
+<div class="box" style="background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border: 2px solid #e5e7eb; margin-top: 3rem;">
+    <div style="display: flex; gap: 2rem; align-items: start; flex-wrap: wrap;">
+        <div style="flex-shrink: 0;">
+            <div style="width: 64px; height: 64px; border-radius: 12px; background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(199, 91, 155, 0.1) 100%); display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-book-open" style="font-size: 1.75rem; color: #8b5cf6;"></i>
+            </div>
+        </div>
+        <div style="flex: 1; min-width: 300px;">
+            <h3 style="font-size: 1.125rem; font-weight: 700; color: #1f2937; margin-bottom: 0.75rem;">
+                <i class="fas fa-lightbulb"></i> O que são Ferramentas?
+            </h3>
+            <div style="color: #4b5563; line-height: 1.7; font-size: 0.9375rem;">
+                <p style="margin-bottom: 1rem;">
+                    <strong style="color: #1f2937;">Ferramentas = Ações que o agente pode executar.</strong> São funções que estendem as capacidades do agente além de apenas conversar. Você pode atribuir até 20 ferramentas por agente.
+                </p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                    <div style="display: flex; align-items: start; gap: 0.75rem;">
+                        <i class="fas fa-check-circle" style="color: #10b981; margin-top: 0.25rem;"></i>
+                        <div>
+                            <strong style="color: #1f2937;">Exemplos:</strong> Buscar informações, calcular, agendar tarefas
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: start; gap: 0.75rem;">
+                        <i class="fas fa-check-circle" style="color: #10b981; margin-top: 0.25rem;"></i>
+                        <div>
+                            <strong style="color: #1f2937;">Limite:</strong> Até 20 ferramentas por agente para melhor performance
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: start; gap: 0.75rem;">
+                        <i class="fas fa-check-circle" style="color: #10b981; margin-top: 0.25rem;"></i>
+                        <div>
+                            <strong style="color: #1f2937;">Auto-seleção:</strong> A IA escolhe qual ferramenta usar baseado no contexto
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const checkboxes = document.querySelectorAll('.ferramenta-checkbox');
+    const contador = document.getElementById('contador');
+    const btnSalvar = document.getElementById('btnSalvar');
+    const selecionarTodas = document.getElementById('selecionarTodas');
+    const MAX_FERRAMENTAS = 20;
+
+    function atualizarContador() {
+        const selecionadas = document.querySelectorAll('.ferramenta-checkbox:checked').length;
+        contador.textContent = selecionadas;
+        
+        // Desabilitar checkboxes se atingir o limite
+        if (selecionadas >= MAX_FERRAMENTAS) {
+            checkboxes.forEach(cb => {
+                if (!cb.checked) {
+                    cb.disabled = true;
+                    cb.parentElement.parentElement.style.opacity = '0.5';
+                }
+            });
+            contador.parentElement.classList.add('has-text-danger');
+        } else {
+            checkboxes.forEach(cb => {
+                cb.disabled = false;
+                cb.parentElement.parentElement.style.opacity = '1';
+            });
+            contador.parentElement.classList.remove('has-text-danger');
+        }
+
+        // Atualizar fundo das boxes selecionadas
+        checkboxes.forEach(cb => {
+            const box = cb.closest('.ferramenta-box');
+            if (cb.checked) {
+                box.style.backgroundColor = '#f0f9ff';
+                box.style.borderLeft = '4px solid #3273dc';
+            } else {
+                box.style.backgroundColor = '';
+                box.style.borderLeft = '';
+            }
+        });
+    }
+
+    // Evento de mudança nos checkboxes
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', atualizarContador);
+    });
+
+    // Selecionar/Desselecionar todas
+    if (selecionarTodas) {
+        selecionarTodas.addEventListener('change', (e) => {
+            const selecionadas = document.querySelectorAll('.ferramenta-checkbox:checked').length;
+            
+            if (e.target.checked) {
+                // Selecionar até o máximo
+                let count = 0;
+                checkboxes.forEach(cb => {
+                    if (count < MAX_FERRAMENTAS) {
+                        cb.checked = true;
+                        count++;
+                    }
+                });
+            } else {
+                // Desselecionar todas
+                checkboxes.forEach(cb => {
+                    cb.checked = false;
+                });
+            }
+            
+            atualizarContador();
+        });
+    }
+
+    // Validação ao submeter
+    document.getElementById('formFerramentas').addEventListener('submit', (e) => {
+        const selecionadas = document.querySelectorAll('.ferramenta-checkbox:checked').length;
+        
+        if (selecionadas > MAX_FERRAMENTAS) {
+            e.preventDefault();
+            alert(`Você pode selecionar no máximo ${MAX_FERRAMENTAS} ferramentas!`);
+            return false;
+        }
+        
+        return true;
+    });
+
+    // Inicializar contador
+    atualizarContador();
+});
+</script>
+{% endblock %}

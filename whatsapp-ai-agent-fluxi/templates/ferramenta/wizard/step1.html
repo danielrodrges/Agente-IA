@@ -1,0 +1,115 @@
+{% extends "ferramenta/wizard/base.html" %}
+
+{% block wizard_content %}
+<form method="POST" action="/ferramentas/wizard/step1">
+    <div class="box">
+        <h2 class="title is-4">
+            <i class="fas fa-info-circle"></i> Definição Básica
+        </h2>
+        <p class="subtitle is-6">Configure as informações fundamentais da ferramenta</p>
+
+        <div class="field">
+            <label class="label">Nome da Ferramenta *</label>
+            <div class="control has-icons-left">
+                <input class="input is-medium" type="text" name="nome" required
+                       value="{{ wizard_data.nome or '' }}"
+                       placeholder="Ex: buscar_cep, consultar_clima, gerar_qrcode"
+                       pattern="[a-z_]+"
+                       title="Apenas letras minúsculas e underscores">
+                <span class="icon is-small is-left">
+                    <i class="fas fa-tag"></i>
+                </span>
+            </div>
+            <p class="help">Use snake_case (ex: buscar_produto, enviar_email)</p>
+        </div>
+
+        <div class="field">
+            <label class="label">Descrição *</label>
+            <div class="control">
+                <textarea class="textarea" name="descricao" rows="3" required
+                          placeholder="Ex: Busca informações de endereço a partir de um CEP brasileiro">{{ wizard_data.descricao or '' }}</textarea>
+            </div>
+            <p class="help">Descreva o que a ferramenta faz de forma clara e objetiva</p>
+        </div>
+
+        <div class="columns">
+            <div class="column">
+                <div class="field">
+                    <label class="label">Tipo de Ferramenta *</label>
+                    <div class="control">
+                        <label class="radio">
+                            <input type="radio" name="tool_type" value="web" 
+                                   {% if not wizard_data.tool_type or wizard_data.tool_type == 'web' %}checked{% endif %}>
+                            <span class="icon"><i class="fas fa-globe"></i></span>
+                            <strong>Web</strong> - Requisição HTTP
+                        </label>
+                        <p class="help ml-5">Faz chamadas para APIs externas (GET, POST, etc)</p>
+                    </div>
+                    <div class="control mt-3">
+                        <label class="radio">
+                            <input type="radio" name="tool_type" value="code"
+                                   {% if wizard_data.tool_type == 'code' %}checked{% endif %}>
+                            <span class="icon"><i class="fas fa-code"></i></span>
+                            <strong>Code</strong> - Código Python
+                        </label>
+                        <p class="help ml-5">Executa código Python local</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="column">
+                <div class="field">
+                    <label class="label">Escopo *</label>
+                    <div class="control">
+                        <label class="radio">
+                            <input type="radio" name="tool_scope" value="principal"
+                                   {% if not wizard_data.tool_scope or wizard_data.tool_scope == 'principal' %}checked{% endif %}>
+                            <span class="icon"><i class="fas fa-star"></i></span>
+                            <strong>Principal</strong>
+                        </label>
+                        <p class="help ml-5">Visível para o LLM (pode ser chamada diretamente)</p>
+                    </div>
+                    <div class="control mt-3">
+                        <label class="radio">
+                            <input type="radio" name="tool_scope" value="auxiliar"
+                                   {% if wizard_data.tool_scope == 'auxiliar' %}checked{% endif %}>
+                            <span class="icon"><i class="fas fa-cog"></i></span>
+                            <strong>Auxiliar</strong>
+                        </label>
+                        <p class="help ml-5">Usada para pós-processamento (não aparece para LLM)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="help-box">
+            <p class="has-text-weight-bold">
+                <span class="icon"><i class="fas fa-lightbulb"></i></span>
+                Dica:
+            </p>
+            <ul style="margin-left: 2rem;">
+                <li><strong>Web:</strong> Use para integrar com APIs externas (ViaCEP, OpenWeather, etc)</li>
+                <li><strong>Code:</strong> Use para lógica customizada, cálculos, validações</li>
+                <li><strong>Principal:</strong> LLM pode chamar quando necessário</li>
+                <li><strong>Auxiliar:</strong> Usada em encadeamento ou pós-processamento</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Botões -->
+    <div class="field is-grouped is-grouped-right">
+        <div class="control">
+            <a href="/ferramentas" class="button is-light is-medium">
+                <span class="icon"><i class="fas fa-times"></i></span>
+                <span>Cancelar</span>
+            </a>
+        </div>
+        <div class="control">
+            <button type="submit" class="button is-primary is-medium">
+                <span>Próximo</span>
+                <span class="icon"><i class="fas fa-arrow-right"></i></span>
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}

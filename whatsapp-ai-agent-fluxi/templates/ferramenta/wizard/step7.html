@@ -1,0 +1,280 @@
+{% extends "ferramenta/wizard/base.html" %}
+
+{% block wizard_content %}
+<form method="POST" action="/ferramentas/wizard/step7">
+    <div class="box">
+        <h2 class="title is-4">
+            <i class="fas fa-check-circle"></i> Resumo da Ferramenta
+        </h2>
+        <p class="subtitle is-6">Revise todas as configurações antes de finalizar</p>
+
+        <!-- Step 1: Básico -->
+        <div class="box" style="background: #f0f7ff;">
+            <h3 class="title is-5">
+                <span class="icon has-text-info"><i class="fas fa-info-circle"></i></span>
+                1. Informações Básicas
+            </h3>
+            <div class="columns">
+                <div class="column">
+                    <p><strong>Nome:</strong> {{ wizard_data.nome }}</p>
+                    <p><strong>Descrição:</strong> {{ wizard_data.descricao }}</p>
+                </div>
+                <div class="column">
+                    <p><strong>Tipo:</strong> 
+                        {% if wizard_data.tool_type == 'web' %}
+                            <span class="tag is-info">🌐 Web (HTTP)</span>
+                        {% else %}
+                            <span class="tag is-warning">💻 Code (Python)</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Escopo:</strong> 
+                        {% if wizard_data.tool_scope == 'principal' %}
+                            <span class="tag is-success">⭐ Principal</span>
+                        {% else %}
+                            <span class="tag is-light">🔧 Auxiliar</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Parâmetros -->
+        <div class="box" style="background: #fff8e1;">
+            <h3 class="title is-5">
+                <span class="icon has-text-warning"><i class="fas fa-sliders-h"></i></span>
+                2. Parâmetros
+            </h3>
+            {% if wizard_data.params %}
+                <div class="table-container">
+                    <table class="table is-fullwidth is-striped">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Tipo</th>
+                                <th>Obrigatório</th>
+                                <th>Descrição</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for param_name, param_config in wizard_data.params.items() %}
+                            <tr>
+                                <td><code>{{ param_name }}</code></td>
+                                <td><span class="tag">{{ param_config.type }}</span></td>
+                                <td>
+                                    {% if param_config.required %}
+                                        <span class="tag is-danger">Sim</span>
+                                    {% else %}
+                                        <span class="tag is-light">Não</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ param_config.description or '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="help">Nenhum parâmetro definido</p>
+            {% endif %}
+        </div>
+
+        <!-- Step 3: Configuração -->
+        <div class="box" style="background: #e8f5e9;">
+            <h3 class="title is-5">
+                <span class="icon has-text-success"><i class="fas fa-cog"></i></span>
+                3. Configuração
+            </h3>
+            {% if wizard_data.tool_type == 'web' %}
+                <div class="content">
+                    <p><strong>CURL Command:</strong></p>
+                    <pre class="code-editor" style="background: #1e1e1e; color: white; padding: 1rem; border-radius: 4px; max-height: 300px; overflow-y: auto;">{{ wizard_data.curl_command or 'Não configurado' }}</pre>
+                </div>
+            {% else %}
+                <div class="content">
+                    <p><strong>Código Python:</strong></p>
+                    <pre class="code-editor" style="background: #1e1e1e; color: white; padding: 1rem; border-radius: 4px; max-height: 300px; overflow-y: auto;">{{ wizard_data.codigo_python or 'Não configurado' }}</pre>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Step 4: Teste -->
+        <div class="box" style="background: #f3e5f5;">
+            <h3 class="title is-5">
+                <span class="icon has-text-purple"><i class="fas fa-flask"></i></span>
+                4. Resultado do Teste
+            </h3>
+            {% if wizard_data.test_result %}
+                <pre class="code-editor" style="background: white; padding: 1rem; border-radius: 4px; max-height: 200px; overflow-y: auto;">{{ wizard_data.test_result | tojson(indent=2) }}</pre>
+            {% else %}
+                <p class="help">Nenhum teste executado</p>
+            {% endif %}
+        </div>
+
+        <!-- Step 5: Mapeamento -->
+        <div class="box" style="background: #fff3e0;">
+            <h3 class="title is-5">
+                <span class="icon has-text-orange"><i class="fas fa-map"></i></span>
+                5. Mapeamento de Resposta
+            </h3>
+            {% if wizard_data.response_map %}
+                <div id="response_map_display"></div>
+            {% else %}
+                <p class="help">Nenhum mapeamento configurado</p>
+            {% endif %}
+        </div>
+
+        <!-- Step 6: Destino -->
+        <div class="box" style="background: #fce4ec;">
+            <h3 class="title is-5">
+                <span class="icon has-text-danger"><i class="fas fa-paper-plane"></i></span>
+                6. Destino da Resposta
+            </h3>
+            <div class="columns">
+                <div class="column">
+                    <p><strong>Output:</strong> 
+                        {% if wizard_data.output == 'llm' %}
+                            <span class="tag is-info">🧠 LLM</span>
+                        {% elif wizard_data.output == 'user' %}
+                            <span class="tag is-success">👤 User</span>
+                        {% elif wizard_data.output == 'both' %}
+                            <span class="tag is-warning">🔄 Both</span>
+                        {% endif %}
+                    </p>
+                    {% if wizard_data.output in ['user', 'both'] %}
+                        <p><strong>Canal:</strong> 
+                            <span class="tag">{{ wizard_data.channel or 'text' }}</span>
+                        </p>
+                    {% endif %}
+                </div>
+                <div class="column">
+                    {% if wizard_data.post_instruction %}
+                        <p><strong>Post Instruction:</strong></p>
+                        <div class="box is-light">{{ wizard_data.post_instruction }}</div>
+                    {% endif %}
+                    {% if wizard_data.next_tool %}
+                        <p><strong>Próxima Ferramenta:</strong> 
+                            <span class="tag is-link">{{ wizard_data.next_tool }}</span>
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- JSON Completo -->
+        <div class="box" style="background: #263238;">
+            <h3 class="title is-5 has-text-white">
+                <span class="icon"><i class="fas fa-code"></i></span>
+                JSON Completo da Configuração
+            </h3>
+            <pre class="code-editor" id="json_completo" style="background: #1e1e1e; color: #4caf50; padding: 1rem; border-radius: 4px; max-height: 400px; overflow-y: auto;"></pre>
+            <button type="button" class="button is-small is-light mt-2" onclick="copyJson()">
+                <span class="icon"><i class="fas fa-copy"></i></span>
+                <span>Copiar JSON</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Botões -->
+    <div class="field is-grouped is-grouped-right">
+        <div class="control">
+            <button type="submit" name="voltar" value="true" class="button is-light is-medium">
+                <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                <span>Voltar</span>
+            </button>
+        </div>
+        <div class="control">
+            <button type="submit" name="finalizar" value="true" class="button is-success is-medium">
+                <span class="icon"><i class="fas fa-check"></i></span>
+                <span>Finalizar e Criar Ferramenta</span>
+            </button>
+        </div>
+    </div>
+</form>
+
+<script>
+// Dados completos
+const wizardData = {{ wizard_data | tojson | safe }};
+
+// Renderizar mapeamento
+function renderResponseMap() {
+    const container = document.getElementById('response_map_display');
+    if (!container) return;
+    
+    let responseMap = {};
+    try {
+        const responseMapStr = wizardData.response_map;
+        if (typeof responseMapStr === 'string') {
+            responseMap = JSON.parse(responseMapStr);
+        } else if (typeof responseMapStr === 'object' && responseMapStr !== null) {
+            responseMap = responseMapStr;
+        }
+    } catch (e) {
+        container.innerHTML = '<p class="help">Erro ao parsear mapeamento</p>';
+        return;
+    }
+    
+    if (Object.keys(responseMap).length === 0) {
+        container.innerHTML = '<p class="help">Nenhum mapeamento configurado</p>';
+        return;
+    }
+    
+    let html = '<table class="table is-fullwidth is-striped"><thead><tr><th>Campo Original</th><th></th><th>Campo Mapeado</th></tr></thead><tbody>';
+    for (const [source, target] of Object.entries(responseMap)) {
+        html += `
+            <tr>
+                <td><code>${source}</code></td>
+                <td><span class="icon"><i class="fas fa-arrow-right"></i></span></td>
+                <td><code>{${target}}</code></td>
+            </tr>
+        `;
+    }
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+// Renderizar JSON completo
+function renderJsonCompleto() {
+    const container = document.getElementById('json_completo');
+    if (!container) return;
+    
+    // Criar objeto limpo para exibição
+    const cleanData = {
+        nome: wizardData.nome,
+        descricao: wizardData.descricao,
+        tool_type: wizardData.tool_type,
+        tool_scope: wizardData.tool_scope,
+        params: wizardData.params,
+        curl_command: wizardData.curl_command,
+        codigo_python: wizardData.codigo_python,
+        response_map: wizardData.response_map,
+        output: wizardData.output,
+        channel: wizardData.channel,
+        post_instruction: wizardData.post_instruction,
+        next_tool: wizardData.next_tool
+    };
+    
+    // Remover campos vazios
+    Object.keys(cleanData).forEach(key => {
+        if (cleanData[key] === null || cleanData[key] === undefined || cleanData[key] === '') {
+            delete cleanData[key];
+        }
+    });
+    
+    container.textContent = JSON.stringify(cleanData, null, 2);
+}
+
+// Copiar JSON
+function copyJson() {
+    const text = document.getElementById('json_completo').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        alert('✅ JSON copiado para a área de transferência!');
+    });
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    renderResponseMap();
+    renderJsonCompleto();
+});
+</script>
+{% endblock %}

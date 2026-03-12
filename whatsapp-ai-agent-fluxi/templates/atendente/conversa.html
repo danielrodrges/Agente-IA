@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}Escalação #{{ escalacao.id }} - Fluxi.IA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+    <a href="/atendente/painel" class="button is-small is-light" style="margin-bottom: 1rem;">
+        <i class="fas fa-arrow-left"></i>&nbsp;Voltar ao Painel
+    </a>
+    <h1 class="title is-4" style="margin-bottom: 0.5rem !important;">
+        <i class="fas fa-comments" style="color: #8b5cf6;"></i> Escalação #{{ escalacao.id }}
+    </h1>
+    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+        {% set status_classes = {
+            'pendente': 'is-danger',
+            'em_atendimento': 'is-warning',
+            'respondida': 'is-success',
+            'expirada': 'is-light',
+            'assumida_humano': 'is-info',
+            'devolvida_ia': 'is-link is-light'
+        } %}
+        <span class="tag {{ status_classes.get(escalacao.status.value, 'is-light') }} is-medium">
+            {{ escalacao.status.value | replace('_', ' ') | title }}
+        </span>
+        <span class="tag is-medium">
+            <i class="fas fa-phone" style="margin-right: 0.5rem;"></i>{{ escalacao.telefone_cliente }}
+        </span>
+        <span class="tag is-medium">{{ escalacao.tipo.value | replace('_', ' ') | title }}</span>
+        <span class="tag is-medium">
+            Prioridade: {{ escalacao.prioridade.value | upper }}
+        </span>
+    </div>
+</div>
+
+<div class="columns">
+    <!-- Coluna Principal: Histórico de Mensagens -->
+    <div class="column is-8">
+        <div class="box" style="height: calc(100vh - 280px); display: flex; flex-direction: column;">
+            <h2 class="title is-6" style="margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border-color);">
+                <i class="fas fa-history"></i> Histórico de Mensagens
+            </h2>
+            
+            <div id="chat-container" style="flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                {% if mensagens %}
+                    {% for msg in mensagens %}
+                    <div style="display: flex; {% if msg.direcao == 'enviada' %}justify-content: flex-end{% else %}justify-content: flex-start{% endif %};">
+                        <div style="max-width: 75%; padding: 0.75rem 1rem; border-radius: 12px; 
+                            {% if msg.direcao == 'enviada' %}
+                                background: linear-gradient(135deg, #C75B9B, #5B4E9B); color: white;
+                                border-bottom-right-radius: 4px;
+                            {% else %}
+                                background: #f3f4f6; color: #1f2937;
+                                border-bottom-left-radius: 4px;
+                            {% endif %}
+                            font-size: 0.9rem; line-height: 1.5;">
+                            <div>{{ msg.conteudo_texto or '[mídia]' }}</div>
+                            <div style="font-size: 0.7rem; opacity: 0.7; margin-top: 0.25rem; text-align: right;">
+                                {{ msg.criado_em.strftime('%d/%m %H:%M') if msg.criado_em else '' }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="has-text-centered" style="color: #9ca3af; padding: 2rem;">
+                        <i class="fas fa-comments fa-2x" style="margin-bottom: 0.5rem;"></i>
+                        <p>Nenhuma mensagem encontrada para este número.</p>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Campo de resposta -->
+            {% if escalacao.status.value in ['pendente', 'em_atendimento', 'assumida_humano'] %}
+            <div style="border-top: 1px solid var(--border-color); padding: 1rem 0 0;">
+                <div style="display: flex; gap: 0.75rem;">
+                    <textarea class="textarea is-small" id="resposta-texto" rows="2" 
+                        placeholder="Digite sua resposta..." style="resize: none;"></textarea>
+                    <button class="button is-success" onclick="enviarResposta()" id="btn-enviar" 
+                        style="align-self: flex-end;">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                    {% if escalacao.status.value != 'assumida_humano' %}
+                    <button class="button is-small is-info is-light" onclick="assumirConversa()">
+                        <i class="fas fa-user-shield"></i>&nbsp;Assumir Conversa
+                    </button>
+                    {% endif %}
+                    <button class="button is-small is-light" onclick="devolverIA()">
+                        <i class="fas fa-robot"></i>&nbsp;Devolver à IA
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Coluna Lateral: Detalhes -->
+    <div class="column is-4">
+        <div class="box">
+            <h2 class="title is-6" style="margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border-color);">
+                <i class="fas fa-info-circle"></i> Contexto da Escalação
+            </h2>
+            
+            <div class="field">
+                <label class="label is-small">Pergunta/Contexto da IA</label>
+                <div style="background: #f9fafb; padding: 0.75rem; border-radius: 8px; border-left: 3px solid #8b5cf6; font-size: 0.85rem; color: var(--text-secondary);">
+                    {{ escalacao.pergunta_ia or 'Sem contexto' }}
+                </div>
+            </div>
+            
+            {% if escalacao.resposta_atendente %}
+            <div class="field" style="margin-top: 1rem;">
+                <label class="label is-small">Última Resposta do Atendente</label>
+                <div style="background: #f0fdf4; padding: 0.75rem; border-radius: 8px; border-left: 3px solid #10b981; font-size: 0.85rem; color: #166534;">
+                    {{ escalacao.resposta_atendente }}
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="field" style="margin-top: 1rem;">
+                <label class="label is-small">Criado em</label>
+                <p style="font-size: 0.85rem; color: var(--text-secondary);">
+                    {{ escalacao.criado_em.strftime('%d/%m/%Y %H:%M:%S') if escalacao.criado_em else 'N/A' }}
+                </p>
+            </div>
+            
+            {% if escalacao.atendente_id %}
+            <div class="field" style="margin-top: 0.75rem;">
+                <label class="label is-small">Atendente</label>
+                <p style="font-size: 0.85rem; color: var(--text-secondary);">{{ escalacao.atendente_id }}</p>
+            </div>
+            {% endif %}
+            
+            {% if escalacao.tempo_espera_ms %}
+            <div class="field" style="margin-top: 0.75rem;">
+                <label class="label is-small">Tempo de Espera</label>
+                <p style="font-size: 0.85rem; color: var(--text-secondary);">{{ (escalacao.tempo_espera_ms / 1000) | round(1) }}s</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+const escalacaoId = {{ escalacao.id }};
+
+// Auto-scroll para última mensagem
+document.addEventListener('DOMContentLoaded', () => {
+    const chatContainer = document.getElementById('chat-container');
+    if (chatContainer) {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+});
+
+async function enviarResposta() {
+    const texto = document.getElementById('resposta-texto').value.trim();
+    if (!texto) return;
+    
+    const btn = document.getElementById('btn-enviar');
+    btn.classList.add('is-loading');
+    
+    try {
+        const response = await fetch(`/api/escalacoes/${escalacaoId}/responder`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                resposta_atendente: texto,
+                atendente_id: 'atendente_web'
+            })
+        });
+        
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            const err = await response.json();
+            alert(`Erro: ${err.detail || 'Falha ao enviar'}`);
+        }
+    } catch (e) {
+        alert('Erro de conexão');
+    } finally {
+        btn.classList.remove('is-loading');
+    }
+}
+
+async function assumirConversa() {
+    if (!confirm('Assumir conversa? O paciente passará a ser atendido por você.')) return;
+    
+    try {
+        await fetch(`/api/escalacoes/${escalacaoId}/assumir`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ atendente_id: 'atendente_web' })
+        });
+        window.location.reload();
+    } catch (e) {
+        alert('Erro ao assumir');
+    }
+}
+
+async function devolverIA() {
+    if (!confirm('Devolver conversa para a IA?')) return;
+    
+    try {
+        await fetch(`/api/escalacoes/${escalacaoId}/devolver`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ atendente_id: 'atendente_web' })
+        });
+        window.location.href = '/atendente/painel';
+    } catch (e) {
+        alert('Erro ao devolver');
+    }
+}
+
+// Enviar com Enter (Shift+Enter para nova linha)
+document.getElementById('resposta-texto')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        enviarResposta();
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Editar' if acao == 'editar' else 'Novo' }} Treinamento - Fluxi.IA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+        <div style="width: 56px; height: 56px; border-radius: 12px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <i class="fas fa-{% if acao == 'editar' %}edit{% else %}plus-circle{% endif %}" style="color: white; font-size: 1.5rem;"></i>
+        </div>
+        <div style="flex: 1; min-width: 0;">
+            <h1 class="title is-3" style="margin-bottom: 0.5rem !important; line-height: 1.2; color: #1f2937;">
+                {{ 'Editar' if acao == 'editar' else 'Novo' }} Treinamento
+            </h1>
+            <p class="subtitle is-6" style="color: #6b7280; margin-bottom: 0 !important; line-height: 1.4;">
+                Configure a base de conhecimento especializado
+            </p>
+        </div>
+    </div>
+</div>
+
+{% if erro %}
+<div class="notification is-danger" style="margin-bottom: 2rem;">
+    <button class="delete"></button>
+    <strong>Erro:</strong> {{ erro }}
+</div>
+{% endif %}
+
+<form method="POST">
+    
+<!-- Informações Básicas -->
+<div class="box" style="margin-bottom: 2rem;">
+    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
+        <i class="fas fa-info-circle" style="color: #3b82f6;"></i> Informações Básicas
+    </h2>
+    
+    <div class="field">
+        <label class="label">Nome do Treinamento *</label>
+        <div class="control">
+            <input class="input" type="text" name="nome" value="{{ rag.nome if rag else '' }}" required>
+        </div>
+        <p class="help">Nome único para identificar este treinamento</p>
+    </div>
+
+    <div class="field">
+        <label class="label">Descrição</label>
+        <div class="control">
+            <textarea class="textarea" name="descricao" rows="3">{{ rag.descricao if rag else '' }}</textarea>
+        </div>
+        <p class="help">Descreva o propósito e conteúdo desta base de conhecimento</p>
+    </div>
+    
+    <div class="field">
+        <label class="checkbox">
+            <input type="checkbox" name="ativo" {% if not rag or rag.ativo %}checked{% endif %}>
+            Treinamento Ativo
+        </label>
+    </div>
+</div>
+
+<!-- Configuração de Embeddings -->
+<div class="box" style="margin-bottom: 2rem;">
+    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
+        <i class="fas fa-robot" style="color: #10b981;"></i> Configuração de Embeddings
+    </h2>
+    
+    <div class="columns">
+        <div class="column">
+            <div class="field">
+                <label class="label">Provider *</label>
+                <div class="control">
+                    <div class="select is-fullwidth">
+                        <select name="provider" id="provider_select" onchange="updateModelOptions()">
+                            {% for provider in providers %}
+                            <option value="{{ provider }}" {% if not rag or rag.provider == provider %}selected{% endif %}>{{ provider|title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="column">
+            <div class="field">
+                <label class="label">Modelo de Embedding *</label>
+                <div class="control">
+                    <input class="input" type="text" name="modelo_embed" id="modelo_embed" value="{{ rag.modelo_embed if rag else default_config.modelo_embed }}" required>
+                </div>
+                <p class="help">Modelo para gerar embeddings vetoriais</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="field">
+        <label class="label">API Key do Provider</label>
+        <div class="control">
+            <input class="input" type="password" name="api_key_embed" placeholder="Deixe em branco para manter a atual" {% if not rag %}required{% endif %}>
+        </div>
+        <p class="help">Chave API para o provider de embeddings selecionado</p>
+    </div>
+</div>
+
+<!-- Configuração de Chunking -->
+<div class="box" style="margin-bottom: 2rem;">
+    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
+        <i class="fas fa-scissors" style="color: #f59e0b;"></i> Configuração de Chunking
+    </h2>
+    
+    <div class="columns">
+        <div class="column">
+            <div class="field">
+                <label class="label">Tamanho do Chunk</label>
+                <div class="control">
+                    <input class="input" type="number" name="chunk_size" value="{{ rag.chunk_size if rag else default_config.chunk_size }}" min="100" max="5000">
+                </div>
+                <p class="help">Número de caracteres por chunk (100-5000)</p>
+            </div>
+        </div>
+        <div class="column">
+            <div class="field">
+                <label class="label">Overlap entre Chunks</label>
+                <div class="control">
+                    <input class="input" type="number" name="chunk_overlap" value="{{ rag.chunk_overlap if rag else default_config.chunk_overlap }}" min="0" max="1000">
+                </div>
+                <p class="help">Sobreposição para manter contexto (0-1000)</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Configuração de Retrieval -->
+<div class="box" style="margin-bottom: 2rem;">
+    <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
+        <i class="fas fa-search" style="color: #8b5cf6;"></i> Configuração de Busca
+    </h2>
+    
+    <div class="columns">
+        <div class="column">
+            <div class="field">
+                <label class="label">Top K (Resultados)</label>
+                <div class="control">
+                    <input class="input" type="number" name="top_k" value="{{ rag.top_k if rag else default_config.top_k }}" min="1" max="20">
+                </div>
+                <p class="help">Número de resultados mais relevantes a retornar</p>
+            </div>
+        </div>
+        <div class="column">
+            <div class="field">
+                <label class="label">Score Threshold (Opcional)</label>
+                <div class="control">
+                    <input class="input" type="text" name="score_threshold" value="{{ rag.score_threshold if rag else default_config.score_threshold_default }}" placeholder="0.7">
+                </div>
+                <p class="help">Similaridade mínima (0.0 a 1.0)</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Botões -->
+<div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 2rem;">
+    <button type="submit" class="button is-medium" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; font-weight: 600; border-radius: 8px; padding: 0.75rem 2rem;">
+        <span class="icon"><i class="fas fa-save"></i></span>
+        <span>Salvar Treinamento</span>
+    </button>
+    <a href="/rags" class="button is-medium" style="border-radius: 8px; font-weight: 600; padding: 0.75rem 2rem;">
+        <span class="icon"><i class="fas fa-times"></i></span>
+        <span>Cancelar</span>
+    </a>
+    {% if acao == 'editar' %}
+    <a href="/rags/{{ rag.id }}/documentos" class="button is-medium" style="margin-left: auto; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border: none; font-weight: 600; border-radius: 8px; padding: 0.75rem 2rem;">
+        <span class="icon"><i class="fas fa-folder-open"></i></span>
+        <span>Gerenciar Documentos</span>
+    </a>
+    {% endif %}
+</div>
+</form>
+
+<script>
+function updateModelOptions() {
+    const provider = document.getElementById('provider_select').value;
+    const modelInput = document.getElementById('modelo_embed');
+    
+    // Usar configurações do servidor se disponíveis
+    const defaultModels = {
+        'openai': '{{ default_config.modelo_embed if default_config else "text-embedding-3-small" }}',
+        'cohere': 'embed-english-v3.0',
+        'huggingface': 'sentence-transformers/all-mpnet-base-v2',
+        'google': 'models/embedding-001'
+    };
+    
+    modelInput.value = defaultModels[provider] || 'text-embedding-3-small';
+}
+</script>
+
+{% endblock %}

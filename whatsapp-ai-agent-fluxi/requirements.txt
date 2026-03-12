@@ -1,0 +1,51 @@
+# Framework Web
+fastapi==0.118.0
+uvicorn[standard]==0.37.0
+python-multipart>=0.0.6
+jinja2>=3.1.0
+
+# Banco de Dados
+sqlalchemy==2.0.43
+alembic>=1.12.0
+
+# WhatsApp
+neonize==0.3.11.post2
+# Note: neonize uses whatsmeow (https://github.com/tulir/whatsmeow) under the hood
+
+# HTTP Client
+httpx==0.28.1
+requests>=2.31.0
+
+# Utilitários
+python-dotenv>=1.0.0
+pydantic==2.11.9
+pydantic-settings>=2.1.0
+itsdangerous>=2.0.0
+
+# Processamento de Imagens
+pillow>=10.0.0
+
+# RAG e Embeddings
+chromadb==1.1.0
+openai==1.108.0
+numpy>=1.24.0
+
+# QR Code
+segno>=1.5.0
+qrcode[pil]>=7.4.0
+
+# MCP (Model Context Protocol)
+mcp==1.15.0
+fastmcp>=2.0.0
+
+# Anthropic (Claude)
+anthropic>=0.52.0
+
+# Agendamento de tarefas
+apscheduler>=3.10.0
+
+# Websockets (para painel do atendente)
+websockets>=12.0
+
+# Timezone
+pytz>=2024.1

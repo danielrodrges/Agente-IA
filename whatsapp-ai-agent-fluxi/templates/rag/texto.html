@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}Texto - {{ rag.nome }} - Fluxi.IA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+        <a href="/rags" style="width: 48px; height: 48px; border-radius: 10px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; text-decoration: none; color: #6b7280;">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <div style="flex: 1; min-width: 0;">
+            <h1 class="title is-3" style="margin-bottom: 0.5rem !important; line-height: 1.2; color: #1f2937;">
+                <i class="fas fa-keyboard" style="color: #10b981;"></i> Gerenciar Texto
+            </h1>
+            <p class="subtitle is-6" style="color: #6b7280; margin-bottom: 0 !important; line-height: 1.4;">
+                RAG: <strong>{{ rag.nome }}</strong>
+            </p>
+        </div>
+    </div>
+    
+    <!-- Status do RAG -->
+    <div style="background: {% if rag.treinado %}linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%){% else %}linear-gradient(135deg, #fef3c7 0%, #fef9c3 100%){% endif %}; border: 2px solid {% if rag.treinado %}#86efac{% else %}#fde047{% endif %}; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div style="width: 48px; height: 48px; border-radius: 10px; background: {% if rag.treinado %}#10b981{% else %}#f59e0b{% endif %}; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-{% if rag.treinado %}check-circle{% else %}clock{% endif %}" style="color: white; font-size: 1.25rem;"></i>
+                </div>
+                <div>
+                    <p style="font-size: 0.875rem; color: {% if rag.treinado %}#065f46{% else %}#78350f{% endif %}; margin-bottom: 0.25rem;">Status</p>
+                    <p style="font-size: 1.125rem; font-weight: 700; color: {% if rag.treinado %}#065f46{% else %}#78350f{% endif %};">
+                        {% if rag.treinado %}✓ Treinado e Pronto{% else %}⏳ Aguardando Texto{% endif %}
+                    </p>
+                </div>
+            </div>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+                <div style="text-align: center;">
+                    <p style="font-size: 0.875rem; color: #6b7280;">Chunks</p>
+                    <p style="font-size: 1.5rem; font-weight: 800; color: #1f2937;">{{ rag.total_chunks }}</p>
+                </div>
+                {% if rag.treinado and rag.total_chunks > 0 %}
+                <div style="display: flex; gap: 0.5rem;">
+                    <a href="/rags/{{ rag.id }}/testar" class="button is-primary is-small">
+                        <span class="icon"><i class="fas fa-search"></i></span>
+                        <span>Testar</span>
+                    </a>
+                    <a href="/rags/{{ rag.id }}/chunks" class="button is-success is-small">
+                        <span class="icon"><i class="fas fa-puzzle-piece"></i></span>
+                        <span>Ver Chunks</span>
+                    </a>
+                    <a href="/rags/{{ rag.id }}/estatisticas" class="button is-info is-small">
+                        <span class="icon"><i class="fas fa-chart-bar"></i></span>
+                        <span>Estatísticas</span>
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Adicionar Texto -->
+<div class="box" style="margin-bottom: 2rem;">
+    <h2 class="title is-5" style="margin-bottom: 1.5rem;">
+        <i class="fas fa-plus-circle" style="color: #3b82f6;"></i> Adicionar Texto
+    </h2>
+    
+    <form id="texto-form" method="POST" action="/api/rags/{{ rag.id }}/adicionar-texto">
+        <div class="field">
+            <label class="label">Título do Conteúdo *</label>
+            <div class="control">
+                <input class="input" type="text" name="titulo" placeholder="Ex: Manual do Produto, Política da Empresa, etc." required>
+            </div>
+            <p class="help">Nome descritivo para identificar este conteúdo</p>
+        </div>
+        
+        <div class="field">
+            <label class="label">Texto *</label>
+            <div class="control">
+                <textarea class="textarea" name="texto" rows="15" placeholder="Cole aqui todo o texto que deseja adicionar à base de conhecimento..." required></textarea>
+            </div>
+            <p class="help">Cole todo o texto que deseja processar. O sistema irá dividir automaticamente em chunks.</p>
+        </div>
+        
+        <div class="columns">
+            <div class="column">
+                <div class="field">
+                    <label class="label">Tamanho do Chunk</label>
+                    <div class="control">
+                        <input class="input" type="number" name="chunk_size" value="{{ rag.chunk_size }}" min="100" max="5000">
+                    </div>
+                    <p class="help">Caracteres por chunk (100-5000)</p>
+                </div>
+            </div>
+            <div class="column">
+                <div class="field">
+                    <label class="label">Overlap entre Chunks</label>
+                    <div class="control">
+                        <input class="input" type="number" name="chunk_overlap" value="{{ rag.chunk_overlap }}" min="0" max="1000">
+                    </div>
+                    <p class="help">Sobreposição para manter contexto (0-1000)</p>
+                </div>
+            </div>
+        </div>
+        
+        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <button type="submit" class="button is-primary is-medium">
+                <span class="icon"><i class="fas fa-plus"></i></span>
+                <span>Adicionar Texto</span>
+            </button>
+            <a href="/rags" class="button is-medium">
+                <span class="icon"><i class="fas fa-times"></i></span>
+                <span>Cancelar</span>
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Informações do RAG -->
+<div class="box">
+    <h2 class="title is-5" style="margin-bottom: 1.5rem;">
+        <i class="fas fa-info-circle" style="color: #10b981;"></i> Informações do RAG
+    </h2>
+    
+    <div class="columns">
+        <div class="column is-6">
+            <div style="space-y: 1rem;">
+                <div>
+                    <div style="font-weight: 600; color: #1f2937; margin-bottom: 0.25rem;">Nome</div>
+                    <div style="color: #6b7280;">{{ rag.nome }}</div>
+                </div>
+                <div>
+                    <div style="font-weight: 600; color: #1f2937; margin-bottom: 0.25rem;">Provider</div>
+                    <div style="color: #6b7280; text-transform: capitalize;">{{ rag.provider }}</div>
+                </div>
+                <div>
+                    <div style="font-weight: 600; color: #1f2937; margin-bottom: 0.25rem;">Modelo</div>
+                    <div style="color: #6b7280;">{{ rag.modelo_embed }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="column is-6">
+            <div style="space-y: 1rem;">
+                <div>
+                    <div style="font-weight: 600; color: #1f2937; margin-bottom: 0.25rem;">Status</div>
+                    <div style="color: #6b7280;">
+                        {% if rag.treinado %}
+                        <span style="color: #10b981; font-weight: 600;">✓ Treinado</span>
+                        {% else %}
+                        <span style="color: #f59e0b; font-weight: 600;">⚠ Não Treinado</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div>
+                    <div style="font-weight: 600; color: #1f2937; margin-bottom: 0.25rem;">Total de Chunks</div>
+                    <div style="color: #6b7280;">{{ rag.total_chunks }}</div>
+                </div>
+                <div>
+                    <div style="font-weight: 600; color: #1f2937; margin-bottom: 0.25rem;">Configurações</div>
+                    <div style="color: #6b7280;">Chunk: {{ rag.chunk_size }}, Overlap: {{ rag.chunk_overlap }}, Top-K: {{ rag.top_k }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('texto-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitButton = this.querySelector('button[type="submit"]');
+    const originalText = submitButton.innerHTML;
+    
+    // Mostrar loading
+    submitButton.innerHTML = '<span class="icon"><i class="fas fa-spinner fa-spin"></i></span><span>Processando...</span>';
+    submitButton.disabled = true;
+    
+    try {
+        const response = await fetch(this.action, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert('Texto adicionado com sucesso!');
+            window.location.reload();
+        } else {
+            alert('Erro: ' + (result.detail || 'Erro desconhecido'));
+        }
+    } catch (error) {
+        alert('Erro: ' + error.message);
+    } finally {
+        // Restaurar botão
+        submitButton.innerHTML = originalText;
+        submitButton.disabled = false;
+    }
+});
+</script>
+
+{% endblock %}

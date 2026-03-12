@@ -1,0 +1,224 @@
+{% extends "ferramenta/wizard/base.html" %}
+
+{% block wizard_content %}
+<form method="POST" action="/ferramentas/wizard/step5" id="mapping_form">
+    <div class="box">
+        <h2 class="title is-4">
+            <i class="fas fa-map"></i> Mapeamento de Resposta
+        </h2>
+        <p class="subtitle is-6">Selecione e renomeie os campos que deseja usar</p>
+
+        {% if wizard_data.test_result %}
+        <!-- Resultado Original -->
+        <div class="mb-5">
+            <h3 class="subtitle is-5">Resposta Original:</h3>
+            <div class="box" style="background: #f5f5f5;">
+                <pre class="code-editor" style="max-height: 300px; overflow-y: auto;">{{ wizard_data.test_result | tojson(indent=2) }}</pre>
+            </div>
+        </div>
+
+        <!-- Mapeamento de Campos -->
+        <h3 class="subtitle is-5">Selecione os Campos:</h3>
+        <p class="help mb-4">Clique para selecionar e edite o nome de saída</p>
+
+        <div id="fields_list">
+            <!-- Campos serão renderizados aqui -->
+        </div>
+
+        <!-- Preview do Resultado Mapeado -->
+        <div class="box mt-5" style="background: #e8f5e9;">
+            <p class="has-text-weight-bold mb-3">
+                <span class="icon has-text-success"><i class="fas fa-check-circle"></i></span>
+                Preview do Resultado Mapeado:
+            </p>
+            <pre class="code-editor" id="preview_result" style="background: white; padding: 1rem;">Selecione campos acima</pre>
+        </div>
+
+        {% else %}
+        <div class="notification is-warning">
+            <p class="has-text-weight-bold">Nenhum teste foi executado</p>
+            <p>Volte ao passo anterior e execute um teste para poder mapear os campos</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Hidden input para response_map -->
+    <input type="hidden" name="response_map" id="response_map_hidden" value="">
+
+    <!-- Botões -->
+    <div class="field is-grouped is-grouped-right">
+        <div class="control">
+            <button type="submit" name="voltar" value="true" class="button is-light is-medium">
+                <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                <span>Voltar</span>
+            </button>
+        </div>
+        <div class="control">
+            <button type="submit" name="pular" value="true" class="button is-light is-medium">
+                <span>Pular Mapeamento</span>
+            </button>
+        </div>
+        <div class="control">
+            <button type="submit" name="continuar" value="true" class="button is-primary is-medium" onclick="saveMapping()">
+                <span>Próximo</span>
+                <span class="icon"><i class="fas fa-arrow-right"></i></span>
+            </button>
+        </div>
+    </div>
+</form>
+
+<script>
+// Dados do teste
+const testResult = {{ wizard_data.test_result | tojson | safe }};
+const existingMap = {};
+
+// Extrair todos os campos (incluindo aninhados)
+function extractFields(obj, prefix = '') {
+    const fields = [];
+    
+    if (typeof obj !== 'object' || obj === null) {
+        return fields;
+    }
+    
+    for (const key in obj) {
+        const fullKey = prefix ? `${prefix}.${key}` : key;
+        const value = obj[key];
+        
+        // Adicionar o campo atual
+        fields.push({
+            path: fullKey,
+            value: value,
+            type: Array.isArray(value) ? 'array' : typeof value
+        });
+        
+        // Se for objeto, extrair campos aninhados
+        if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+            fields.push(...extractFields(value, fullKey));
+        }
+    }
+    
+    return fields;
+}
+
+// Renderizar campos
+function renderFields() {
+    const container = document.getElementById('fields_list');
+    const fields = extractFields(testResult);
+    
+    container.innerHTML = '';
+    
+    fields.forEach(field => {
+        // Pular objetos aninhados (só mostrar valores finais)
+        if (field.type === 'object') return;
+        
+        const div = document.createElement('div');
+        div.className = 'box field-item mb-2';
+        div.style.cursor = 'pointer';
+        div.style.transition = 'all 0.2s';
+        
+        const outputName = field.path.split('.').pop();
+        
+        div.innerHTML = `
+            <div class="columns is-mobile is-vcentered">
+                <div class="column is-1">
+                    <input type="checkbox" class="field-checkbox" data-path="${field.path}" 
+                           onchange="toggleField(this)" 
+                           style="width: 20px; height: 20px; cursor: pointer;">
+                </div>
+                <div class="column is-5">
+                    <span class="tag is-info is-light">${field.path}</span>
+                    <br>
+                    <small class="has-text-grey">${JSON.stringify(field.value).substring(0, 50)}</small>
+                </div>
+                <div class="column is-1 has-text-centered">
+                    <span class="icon"><i class="fas fa-arrow-right"></i></span>
+                </div>
+                <div class="column is-5">
+                    <input type="text" class="input output-name" data-path="${field.path}" 
+                           value="${outputName}" 
+                           placeholder="Nome de saída" 
+                           onkeyup="updateMapping()"
+                           disabled>
+                </div>
+            </div>
+        `;
+        
+        // Click no box também seleciona
+        div.addEventListener('click', function(e) {
+            if (e.target.tagName !== 'INPUT') {
+                const checkbox = div.querySelector('.field-checkbox');
+                checkbox.checked = !checkbox.checked;
+                toggleField(checkbox);
+            }
+        });
+        
+        container.appendChild(div);
+    });
+    
+    updatePreview();
+}
+
+// Toggle field selection
+function toggleField(checkbox) {
+    const path = checkbox.dataset.path;
+    const box = checkbox.closest('.field-item');
+    const input = box.querySelector('.output-name');
+    
+    if (checkbox.checked) {
+        box.style.background = '#e3f2fd';
+        box.style.borderLeft = '4px solid #2196f3';
+        input.disabled = false;
+        existingMap[path] = input.value;
+    } else {
+        box.style.background = '';
+        box.style.borderLeft = '';
+        input.disabled = true;
+        delete existingMap[path];
+    }
+    
+    updatePreview();
+}
+
+// Update mapping
+function updateMapping() {
+    document.querySelectorAll('.field-checkbox:checked').forEach(checkbox => {
+        const path = checkbox.dataset.path;
+        const input = document.querySelector(`.output-name[data-path="${path}"]`);
+        existingMap[path] = input.value;
+    });
+    
+    updatePreview();
+}
+
+// Update preview
+function updatePreview() {
+    const preview = {};
+    
+    for (const [sourcePath, outputName] of Object.entries(existingMap)) {
+        // Navegar pelo objeto para pegar o valor
+        const parts = sourcePath.split('.');
+        let value = testResult;
+        
+        for (const part of parts) {
+            if (value && typeof value === 'object') {
+                value = value[part];
+            }
+        }
+        
+        preview[outputName] = value;
+    }
+    
+    document.getElementById('preview_result').textContent = JSON.stringify(preview, null, 2);
+}
+
+// Save mapping
+function saveMapping() {
+    document.getElementById('response_map_hidden').value = JSON.stringify(existingMap);
+}
+
+// Initialize
+if (testResult) {
+    renderFields();
+}
+</script>
+{% endblock %}

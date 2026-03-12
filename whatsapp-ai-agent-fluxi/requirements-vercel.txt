@@ -1,0 +1,54 @@
+# ===========================================
+# Requirements para deploy na Vercel (Serverless)
+# ===========================================
+# Use este arquivo no deploy Vercel.
+# Exclui pacotes nativos/pesados incompatíveis com serverless.
+
+# Framework Web
+fastapi==0.118.0
+python-multipart>=0.0.6
+jinja2>=3.1.0
+mangum>=0.19.0
+
+# Banco de Dados (PostgreSQL para Vercel/Supabase)
+sqlalchemy==2.0.43
+psycopg2-binary>=2.9.9
+
+# HTTP Client
+httpx==0.28.1
+requests>=2.31.0
+
+# Utilitários
+python-dotenv>=1.0.0
+pydantic==2.11.9
+pydantic-settings>=2.1.0
+itsdangerous>=2.0.0
+
+# Processamento de Imagens
+pillow>=10.0.0
+
+# RAG e Embeddings
+openai==1.108.0
+numpy>=1.24.0
+
+# Anthropic (Claude)
+anthropic>=0.52.0
+
+# Timezone
+pytz>=2024.1
+
+# Aiofiles para servir static
+aiofiles>=23.0.0
+
+# ============================================
+# EXCLUÍDOS (incompatíveis com Vercel serverless):
+# ============================================
+# neonize        - binário nativo Go (WhatsApp não-oficial)
+# segno          - geração QR code (não necessário sem Neonize)
+# qrcode[pil]    - geração QR code
+# chromadb       - muito pesado para serverless (>250MB)
+# mcp/fastmcp    - requer stdio/subprocess
+# uvicorn        - servidor ASGI (Vercel tem o próprio)
+# apscheduler    - jobs em background (serverless é stateless)
+# websockets     - Vercel não suporta WebSocket persistente
+# alembic        - migrações rodam localmente, não no deploy

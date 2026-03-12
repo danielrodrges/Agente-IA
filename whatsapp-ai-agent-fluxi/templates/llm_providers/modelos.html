@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titulo }} - Fluxi.IA{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="level">
+        <div class="level-left">
+            <div class="level-item">
+                <h1 class="title is-3">
+                    <i class="fas fa-cube"></i>
+                    {{ titulo }}
+                </h1>
+            </div>
+        </div>
+        <div class="level-right">
+            <div class="level-item">
+                <div class="buttons">
+                    <a href="/provedores-llm/{{ provedor.id }}/testar" class="button is-info">
+                        <span class="icon">
+                            <i class="fas fa-sync"></i>
+                        </span>
+                        <span>Atualizar</span>
+                    </a>
+                    <a href="/provedores-llm/{{ provedor.id }}/detalhes" class="button is-light">
+                        <span class="icon">
+                            <i class="fas fa-arrow-left"></i>
+                        </span>
+                        <span>Voltar</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Modelos -->
+    {% if modelos %}
+    <div class="columns is-multiline">
+        {% for modelo in modelos %}
+        <div class="column is-one-third">
+            <div class="card">
+                <div class="card-content">
+                    <div class="media">
+                        <div class="media-left">
+                            <figure class="image is-48x48">
+                                <span class="icon is-large has-text-primary">
+                                    <i class="fas fa-cube fa-2x"></i>
+                                </span>
+                            </figure>
+                        </div>
+                        <div class="media-content">
+                            <p class="title is-5">{{ modelo.nome }}</p>
+                            <p class="subtitle is-6">
+                                {% if modelo.ativo %}
+                                    <span class="tag is-success">Ativo</span>
+                                {% else %}
+                                    <span class="tag is-light">Inativo</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="content">
+                        {% if modelo.contexto %}
+                        <p>
+                            <i class="fas fa-memory"></i>
+                            <strong>Contexto:</strong> {{ modelo.contexto }} tokens
+                        </p>
+                        {% endif %}
+                        
+                        {% if modelo.tamanho %}
+                        <p>
+                            <i class="fas fa-weight"></i>
+                            <strong>Tamanho:</strong> {{ modelo.tamanho }}
+                        </p>
+                        {% endif %}
+                        
+                        {% if modelo.quantizacao %}
+                        <p>
+                            <i class="fas fa-compress"></i>
+                            <strong>Quantização:</strong> {{ modelo.quantizacao }}
+                        </p>
+                        {% endif %}
+                        
+                        <div class="tags">
+                            {% if modelo.suporta_imagens %}
+                                <span class="tag is-success">
+                                    <i class="fas fa-image"></i> Imagens
+                                </span>
+                            {% endif %}
+                            {% if modelo.suporta_ferramentas %}
+                                <span class="tag is-info">
+                                    <i class="fas fa-tools"></i> Ferramentas
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <footer class="card-footer">
+                    <a href="/provedores-llm/{{ provedor.id }}/testar" class="card-footer-item">
+                        <i class="fas fa-play"></i> Testar
+                    </a>
+                </footer>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="box has-text-centered">
+        <div class="content">
+            <span class="icon is-large has-text-grey">
+                <i class="fas fa-cube fa-3x"></i>
+            </span>
+            <h3 class="title is-4 has-text-grey">Nenhum modelo encontrado</h3>
+            <p class="has-text-grey">Teste a conexão com o provedor para carregar os modelos disponíveis.</p>
+            <br>
+            <a href="/provedores-llm/{{ provedor.id }}/testar" class="button is-primary is-large">
+                <span class="icon">
+                    <i class="fas fa-play"></i>
+                </span>
+                <span>Testar Conexão</span>
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

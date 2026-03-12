@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}Campanhas - Fluxi.IA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 class="title is-3" style="margin-bottom: 0.75rem !important;">
+            <i class="fas fa-bullhorn" style="color: #f59e0b;"></i> Campanhas
+        </h1>
+        <p class="subtitle is-6" style="color: #6b7280; margin-bottom: 0 !important;">
+            Envio proativo de mensagens: confirmações, lembretes e follow-up
+        </p>
+    </div>
+    <button class="button is-success" onclick="document.getElementById('modal-nova').classList.add('is-active')">
+        <i class="fas fa-plus"></i>&nbsp;Nova Campanha
+    </button>
+</div>
+
+<!-- Lista de Campanhas -->
+<div id="campanhas-lista">
+    <div class="has-text-centered" style="padding: 3rem;">
+        <i class="fas fa-spinner fa-spin fa-2x" style="color: #6b7280;"></i>
+    </div>
+</div>
+
+<!-- Modal Nova Campanha -->
+<div class="modal" id="modal-nova">
+    <div class="modal-background" onclick="this.parentElement.classList.remove('is-active')"></div>
+    <div class="modal-card" style="max-width: 650px; width: 95%;">
+        <header class="modal-card-head" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+            <p class="modal-card-title" style="color: white;"><i class="fas fa-plus"></i> Nova Campanha</p>
+            <button class="delete" onclick="this.closest('.modal').classList.remove('is-active')"></button>
+        </header>
+        <section class="modal-card-body">
+            <div class="field">
+                <label class="label">Nome da Campanha</label>
+                <input class="input" type="text" id="camp-nome" placeholder="Ex: Confirmação de consultas amanhã">
+            </div>
+            <div class="field">
+                <label class="label">Tipo</label>
+                <div class="select is-fullwidth">
+                    <select id="camp-tipo">
+                        <option value="confirmacao_consulta">Confirmação de Consulta</option>
+                        <option value="lembrete_consulta">Lembrete de Consulta</option>
+                        <option value="followup">Follow-up</option>
+                        <option value="reengajamento">Reengajamento</option>
+                        <option value="resultado_exame">Resultado de Exame</option>
+                        <option value="pesquisa_satisfacao">Pesquisa de Satisfação</option>
+                        <option value="personalizado">Personalizado</option>
+                    </select>
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">Sessão</label>
+                <div class="select is-fullwidth">
+                    <select id="camp-sessao">
+                        {% for sessao in sessoes %}
+                        <option value="{{ sessao.id }}">{{ sessao.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">Mensagem / Template</label>
+                <textarea class="textarea" id="camp-mensagem" rows="3" 
+                    placeholder="Olá {nome_paciente}! Sua consulta em {especialidade} está agendada para {data_hora}. Confirma sua presença?"></textarea>
+                <p class="help">Use {nome_paciente}, {especialidade}, {data_hora}, {medico} como variáveis</p>
+            </div>
+            <div class="field">
+                <label class="label">Nome do Template Meta (opcional)</label>
+                <input class="input" type="text" id="camp-template" placeholder="Ex: confirmacao_consulta_v1">
+                <p class="help">Se usar Meta Cloud API, informe o nome do template aprovado</p>
+            </div>
+            <div class="field">
+                <label class="label">Antecedência (horas)</label>
+                <input class="input" type="number" id="camp-antecedencia" value="24" min="1">
+                <p class="help">Horas antes do evento para enviar a mensagem</p>
+            </div>
+        </section>
+        <footer class="modal-card-foot" style="justify-content: flex-end; gap: 0.75rem;">
+            <button class="button" onclick="this.closest('.modal').classList.remove('is-active')">Cancelar</button>
+            <button class="button is-success" onclick="criarCampanha()" id="btn-criar">
+                <i class="fas fa-save"></i>&nbsp;Criar
+            </button>
+        </footer>
+    </div>
+</div>
+
+<script>
+async function carregarCampanhas() {
+    try {
+        const response = await fetch('/api/campanhas/');
+        const campanhas = await response.json();
+        renderizarCampanhas(campanhas);
+    } catch (e) {
+        document.getElementById('campanhas-lista').innerHTML = 
+            '<div class="notification is-danger is-light">Erro ao carregar campanhas</div>';
+    }
+}
+
+function renderizarCampanhas(campanhas) {
+    const container = document.getElementById('campanhas-lista');
+    
+    if (!campanhas || campanhas.length === 0) {
+        container.innerHTML = `
+            <div class="box has-text-centered" style="padding: 3rem;">
+                <i class="fas fa-bullhorn fa-3x" style="color: #d1d5db; margin-bottom: 1rem;"></i>
+                <p style="color: #6b7280; font-size: 1.1rem;">Nenhuma campanha criada ainda.</p>
+                <p style="color: #9ca3af;">Crie sua primeira campanha para enviar mensagens proativas.</p>
+            </div>`;
+        return;
+    }
+    
+    const tipoLabels = {
+        'confirmacao_consulta': { label: 'Confirmação', icon: 'fa-calendar-check', color: '#10b981' },
+        'lembrete_consulta': { label: 'Lembrete', icon: 'fa-bell', color: '#3b82f6' },
+        'followup': { label: 'Follow-up', icon: 'fa-redo', color: '#8b5cf6' },
+        'reengajamento': { label: 'Reengajamento', icon: 'fa-heartbeat', color: '#ec4899' },
+        'resultado_exame': { label: 'Resultado Exame', icon: 'fa-flask', color: '#06b6d4' },
+        'pesquisa_satisfacao': { label: 'Pesquisa', icon: 'fa-star', color: '#f59e0b' },
+        'personalizado': { label: 'Personalizado', icon: 'fa-envelope', color: '#6b7280' },
+    };
+    
+    let html = '<div class="columns is-multiline">';
+    
+    for (const camp of campanhas) {
+        const tipo = tipoLabels[camp.tipo] || tipoLabels['personalizado'];
+        
+        html += `
+        <div class="column is-4">
+            <div class="box" style="border-top: 3px solid ${tipo.color};">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <span class="tag" style="background: ${tipo.color}15; color: ${tipo.color}; font-weight: 600;">
+                        <i class="fas ${tipo.icon}"></i>&nbsp;${tipo.label}
+                    </span>
+                    <span class="tag ${camp.ativa ? 'is-success is-light' : 'is-light'}">${camp.ativa ? 'Ativa' : 'Inativa'}</span>
+                </div>
+                <h3 style="font-weight: 700; font-size: 1.1rem; color: var(--text-primary); margin-bottom: 0.5rem;">
+                    ${camp.nome}
+                </h3>
+                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                    Antecedência: ${camp.antecedencia_horas || 24}h
+                </div>
+                <div style="display: flex; gap: 1rem; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+                    <span><i class="fas fa-paper-plane"></i> ${camp.total_enviados || 0} enviados</span>
+                    <span><i class="fas fa-check"></i> ${camp.total_entregues || 0} entregues</span>
+                    <span><i class="fas fa-times"></i> ${camp.total_erros || 0} erros</span>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="button is-small is-link is-light" onclick="executarCampanha(${camp.id})">
+                        <i class="fas fa-play"></i>&nbsp;Executar
+                    </button>
+                    <button class="button is-small is-light" onclick="toggleCampanha(${camp.id}, ${!camp.ativa})">
+                        <i class="fas fa-${camp.ativa ? 'pause' : 'play'}"></i>&nbsp;${camp.ativa ? 'Pausar' : 'Ativar'}
+                    </button>
+                    <button class="button is-small is-danger is-light" onclick="deletarCampanha(${camp.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>`;
+    }
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+async function criarCampanha() {
+    const btn = document.getElementById('btn-criar');
+    btn.classList.add('is-loading');
+    
+    const dados = {
+        nome: document.getElementById('camp-nome').value,
+        tipo: document.getElementById('camp-tipo').value,
+        sessao_id: parseInt(document.getElementById('camp-sessao').value),
+        mensagem_texto: document.getElementById('camp-mensagem').value,
+        template_name: document.getElementById('camp-template').value || null,
+        antecedencia_horas: parseInt(document.getElementById('camp-antecedencia').value),
+    };
+    
+    try {
+        const response = await fetch('/api/campanhas/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dados),
+        });
+        
+        if (response.ok) {
+            document.getElementById('modal-nova').classList.remove('is-active');
+            carregarCampanhas();
+        } else {
+            const err = await response.json();
+            alert(`Erro: ${err.detail || 'Falha ao criar'}`);
+        }
+    } catch (e) {
+        alert('Erro de conexão');
+    } finally {
+        btn.classList.remove('is-loading');
+    }
+}
+
+async function executarCampanha(id) {
+    if (!confirm('Executar campanha agora? As mensagens serão enviadas.')) return;
+    
+    try {
+        const response = await fetch(`/api/campanhas/${id}/executar`, { method: 'POST' });
+        const data = await response.json();
+        alert(`Campanha executada! ${data.enviados || 0} mensagens enviadas.`);
+        carregarCampanhas();
+    } catch (e) {
+        alert('Erro ao executar campanha');
+    }
+}
+
+async function toggleCampanha(id, ativa) {
+    try {
+        await fetch(`/api/campanhas/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ativa }),
+        });
+        carregarCampanhas();
+    } catch (e) {
+        alert('Erro ao atualizar campanha');
+    }
+}
+
+async function deletarCampanha(id) {
+    if (!confirm('Deletar esta campanha?')) return;
+    
+    try {
+        await fetch(`/api/campanhas/${id}`, { method: 'DELETE' });
+        carregarCampanhas();
+    } catch (e) {
+        alert('Erro ao deletar');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', carregarCampanhas);
+</script>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}MCP Clients - Fluxi.IA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 class="title is-3" style="margin-bottom: 0.5rem; color: #1f2937;">
+        <i class="fas fa-plug" style="color: #8b5cf6;"></i> MCP Clients
+    </h1>
+    <p class="subtitle is-6" style="color: #6b7280; margin-bottom: 0;">
+        Gerencie servidores MCP conectados aos seus agentes
+    </p>
+</div>
+
+<div class="box" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 2px solid #7dd3fc; margin-bottom: 2rem;">
+    <h3 style="font-size: 1.25rem; font-weight: 700; color: #0c4a6e; margin-bottom: 0.75rem;">
+        <i class="fas fa-info-circle"></i> Model Context Protocol (MCP)
+    </h3>
+    <p style="color: #0c4a6e; line-height: 1.7;">
+        Conecte servidores MCP externos para adicionar ferramentas especializadas aos seus agentes. 
+        Cada agente pode ter até <strong>5 servidores MCP</strong> ativos.
+    </p>
+</div>
+
+{% if sessoes %}
+<h2 class="title is-4" style="margin-bottom: 1.5rem; color: #1f2937;">Selecione um Agente</h2>
+
+{% for sessao in sessoes %}
+<div class="box" style="margin-bottom: 2rem;">
+    <h3 style="font-size: 1.125rem; font-weight: 700; color: #1f2937; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem;">
+        <i class="fab fa-whatsapp" style="color: #10b981;"></i>
+        {{ sessao.nome }}
+        {% if sessao.total_mcp_clients > 0 %}
+        <span style="background: #e0e7ff; color: #3730a3; padding: 0.25rem 0.75rem; border-radius: 50px; font-size: 0.875rem;">
+            {{ sessao.total_mcp_clients }} MCP{{ 's' if sessao.total_mcp_clients != 1 else '' }}
+        </span>
+        {% endif %}
+    </h3>
+    
+    {% if sessao.agentes %}
+    <div class="columns is-multiline">
+        {% for agente in sessao.agentes %}
+        {% if agente.ativo %}
+        <div class="column is-6-tablet is-4-desktop">
+            <a href="/mcp/agente/{{ agente.id }}/clients" style="display: block; text-decoration: none;">
+                <div style="background: white; border: 2px solid #e5e7eb; border-radius: 8px; padding: 1rem; transition: all 0.2s; cursor: pointer;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                        <div style="width: 40px; height: 40px; border-radius: 8px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fas fa-robot" style="color: white;"></i>
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <strong style="color: #1f2937; display: block;">{{ agente.nome }}</strong>
+                            <code style="font-size: 0.75rem; color: #6b7280;">#{{'{'}}{{ agente.codigo }}{{'}'}}}</code>
+                        </div>
+                    </div>
+                    {% set mcp_count = [] %}
+                    {% for _ in range(0, 5) %}
+                        {% if loop.index0 < (agente.mcp_clients|length) %}
+                            {% set _ = mcp_count.append(1) %}
+                        {% endif %}
+                    {% endfor %}
+                    <div style="font-size: 0.875rem; color: #6b7280;">
+                        <i class="fas fa-plug"></i> {{ agente.mcp_clients|length }}/5 servidores MCP
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+    {% else %}
+    <p style="color: #9ca3af; text-align: center; padding: 1rem;">Nenhum agente ativo nesta sessão</p>
+    {% endif %}
+</div>
+{% endfor %}
+
+{% else %}
+<div style="text-align: center; padding: 4rem 2rem; background: white; border: 2px dashed #e5e7eb; border-radius: 12px;">
+    <div style="margin-bottom: 1.5rem;">
+        <span style="width: 80px; height: 80px; border-radius: 50%; background: rgba(139, 92, 246, 0.1); display: inline-flex; align-items: center; justify-content: center;">
+            <i class="fas fa-robot" style="font-size: 2.5rem; color: #8b5cf6;"></i>
+        </span>
+    </div>
+    <h3 class="title is-4" style="margin-bottom: 0.75rem;">Nenhuma sessão ativa</h3>
+    <p style="color: #6b7280; margin-bottom: 2rem; line-height: 1.7;">
+        Crie uma sessão e agentes primeiro para gerenciar MCP clients.
+    </p>
+    <a href="/sessoes" class="button is-primary is-medium" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border: none; border-radius: 8px; font-weight: 600;">
+        <span class="icon"><i class="fas fa-plus-circle"></i></span>
+        <span>Ir para Sessões</span>
+    </a>
+</div>
+{% endif %}
+
+{% endblock %}

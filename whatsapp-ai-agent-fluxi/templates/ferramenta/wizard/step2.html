@@ -1,0 +1,212 @@
+{% extends "ferramenta/wizard/base.html" %}
+
+{% block wizard_content %}
+<form method="POST" action="/ferramentas/wizard/step2">
+    <div class="box">
+        <h2 class="title is-4">
+            <i class="fas fa-sliders-h"></i> Parâmetros da Ferramenta
+        </h2>
+        <p class="subtitle is-6">Defina os argumentos que a ferramenta receberá</p>
+
+        <!-- Lista de Parâmetros Existentes -->
+        {% if wizard_data.params %}
+        <div class="mb-5">
+            <h3 class="subtitle is-5">Parâmetros Definidos:</h3>
+            {% for param_name, param_config in wizard_data.params.items() %}
+            <div class="param-item">
+                <div class="level is-mobile">
+                    <div class="level-left">
+                        <div class="level-item">
+                            <div>
+                                <p class="heading">Nome</p>
+                                <p class="title is-5">{{ param_name }}</p>
+                            </div>
+                        </div>
+                        <div class="level-item">
+                            <div>
+                                <p class="heading">Tipo</p>
+                                <p class="subtitle is-6">
+                                    <span class="tag is-info">{{ param_config.type }}</span>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="level-item">
+                            <div>
+                                <p class="heading">Obrigatório</p>
+                                <p class="subtitle is-6">
+                                    {% if param_config.required %}
+                                    <span class="tag is-success">Sim</span>
+                                    {% else %}
+                                    <span class="tag is-light">Não</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="level-right">
+                        <div class="level-item">
+                            <button type="submit" name="remover_param" value="{{ param_name }}" 
+                                    class="button is-small is-danger is-light">
+                                <span class="icon"><i class="fas fa-trash"></i></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% if param_config.description %}
+                <p class="help"><strong>Descrição:</strong> {{ param_config.description }}</p>
+                {% endif %}
+                {% if param_config.type == 'enum' and param_config.options %}
+                <p class="help"><strong>Opções:</strong> {{ param_config.options|join(', ') }}</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Adicionar Novo Parâmetro -->
+        <div class="box" style="background: #f9f9f9;">
+            <h3 class="subtitle is-5">
+                <i class="fas fa-plus-circle"></i> Adicionar Parâmetro
+            </h3>
+
+            <div class="columns">
+                <div class="column is-4">
+                    <div class="field">
+                        <label class="label">Nome do Parâmetro</label>
+                        <div class="control">
+                            <input class="input" type="text" name="param_nome"
+                                   placeholder="Ex: cep, cidade, valor"
+                                   pattern="[a-z_]+"
+                                   title="Apenas letras minúsculas e underscores">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="column is-3">
+                    <div class="field">
+                        <label class="label">Tipo</label>
+                        <div class="control">
+                            <div class="select is-fullwidth">
+                                <select name="param_type" id="param_type">
+                                    <option value="string">String</option>
+                                    <option value="int">Integer</option>
+                                    <option value="float">Float</option>
+                                    <option value="bool">Boolean</option>
+                                    <option value="array">Array</option>
+                                    <option value="enum">Enum</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="column is-2">
+                    <div class="field">
+                        <label class="label">Obrigatório</label>
+                        <div class="control">
+                            <label class="checkbox">
+                                <input type="checkbox" name="param_required" value="true" checked>
+                                Sim
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="column is-3">
+                    <div class="field">
+                        <label class="label">&nbsp;</label>
+                        <div class="control">
+                            <button type="submit" name="adicionar_param" value="true" class="button is-success is-fullwidth">
+                                <span class="icon"><i class="fas fa-plus"></i></span>
+                                <span>Adicionar</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label">Descrição</label>
+                <div class="control">
+                    <input class="input" type="text" name="param_description"
+                           placeholder="Ex: CEP no formato 00000-000 ou 00000000">
+                </div>
+            </div>
+
+            <!-- Campo condicional para Enum -->
+            <div class="field" id="enum_options_field" style="display: none;">
+                <label class="label">Opções (separadas por vírgula)</label>
+                <div class="control">
+                    <input class="input" type="text" name="param_options"
+                           placeholder="Ex: opcao1, opcao2, opcao3">
+                </div>
+                <p class="help">Para tipo Enum, defina as opções válidas</p>
+            </div>
+
+            <!-- Campo condicional para Array -->
+            <div class="field" id="array_item_type_field" style="display: none;">
+                <label class="label">Tipo dos Itens</label>
+                <div class="control">
+                    <div class="select is-fullwidth">
+                        <select name="param_item_type">
+                            <option value="string">String</option>
+                            <option value="int">Integer</option>
+                            <option value="float">Float</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="help-box">
+            <p class="has-text-weight-bold">
+                <span class="icon"><i class="fas fa-lightbulb"></i></span>
+                Tipos de Parâmetros:
+            </p>
+            <ul style="margin-left: 2rem;">
+                <li><strong>String:</strong> Texto (ex: nome, endereço)</li>
+                <li><strong>Integer:</strong> Número inteiro (ex: quantidade, idade)</li>
+                <li><strong>Float:</strong> Número decimal (ex: preço, temperatura)</li>
+                <li><strong>Boolean:</strong> Verdadeiro ou falso</li>
+                <li><strong>Array:</strong> Lista de valores</li>
+                <li><strong>Enum:</strong> Opções pré-definidas (ex: status: ativo, inativo)</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Botões -->
+    <div class="field is-grouped is-grouped-right">
+        <div class="control">
+            <button type="submit" name="voltar" value="true" class="button is-light is-medium">
+                <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                <span>Voltar</span>
+            </button>
+        </div>
+        <div class="control">
+            <button type="submit" name="continuar" value="true" class="button is-primary is-medium">
+                <span>Próximo</span>
+                <span class="icon"><i class="fas fa-arrow-right"></i></span>
+            </button>
+        </div>
+    </div>
+</form>
+
+<script>
+    // Mostrar/ocultar campos condicionais
+    document.getElementById('param_type').addEventListener('change', function() {
+        const enumField = document.getElementById('enum_options_field');
+        const arrayField = document.getElementById('array_item_type_field');
+        
+        if (this.value === 'enum') {
+            enumField.style.display = 'block';
+            arrayField.style.display = 'none';
+        } else if (this.value === 'array') {
+            enumField.style.display = 'none';
+            arrayField.style.display = 'block';
+        } else {
+            enumField.style.display = 'none';
+            arrayField.style.display = 'none';
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Chunks - {{ rag.nome }} - Fluxi.IA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+        <a href="/rags/{{ rag.id }}/documentos" style="width: 48px; height: 48px; border-radius: 10px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; text-decoration: none; color: #6b7280;">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <div style="flex: 1; min-width: 0;">
+            <h1 class="title is-3" style="margin-bottom: 0.5rem !important; line-height: 1.2; color: #1f2937;">
+                <i class="fas fa-puzzle-piece" style="color: #10b981;"></i> Chunks da Base de Conhecimento
+            </h1>
+            <p class="subtitle is-6" style="color: #6b7280; margin-bottom: 0 !important; line-height: 1.4;">
+                RAG: <strong>{{ rag.nome }}</strong> • {{ chunks|length }} chunks encontrados
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Estatísticas -->
+<div class="box" style="margin-bottom: 2rem;">
+    <h2 class="title is-5" style="margin-bottom: 1.5rem;">
+        <i class="fas fa-chart-bar" style="color: #3b82f6;"></i> Estatísticas
+    </h2>
+    
+    <div class="columns">
+        <div class="column is-3">
+            <div style="text-align: center; padding: 1rem; background: #f8fafc; border-radius: 8px;">
+                <div style="font-size: 2rem; font-weight: bold; color: #10b981;">{{ chunks|length }}</div>
+                <div style="color: #6b7280; font-size: 0.875rem;">Total de Chunks</div>
+            </div>
+        </div>
+        <div class="column is-3">
+            <div style="text-align: center; padding: 1rem; background: #f8fafc; border-radius: 8px;">
+                <div style="font-size: 2rem; font-weight: bold; color: #3b82f6;">{{ (chunks|map(attribute='length')|sum / chunks|length)|round|int if chunks else 0 }}</div>
+                <div style="color: #6b7280; font-size: 0.875rem;">Tamanho Médio</div>
+            </div>
+        </div>
+        <div class="column is-3">
+            <div style="text-align: center; padding: 1rem; background: #f8fafc; border-radius: 8px;">
+                <div style="font-size: 2rem; font-weight: bold; color: #f59e0b;">{{ chunks|map(attribute='length')|max if chunks else 0 }}</div>
+                <div style="color: #6b7280; font-size: 0.875rem;">Maior Chunk</div>
+            </div>
+        </div>
+        <div class="column is-3">
+            <div style="text-align: center; padding: 1rem; background: #f8fafc; border-radius: 8px;">
+                <div style="font-size: 2rem; font-weight: bold; color: #ef4444;">{{ chunks|map(attribute='length')|min if chunks else 0 }}</div>
+                <div style="color: #6b7280; font-size: 0.875rem;">Menor Chunk</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lista de Chunks -->
+<div class="box">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+        <h2 class="title is-5" style="margin-bottom: 0 !important;">
+            <i class="fas fa-list" style="color: #3b82f6;"></i> Chunks Armazenados
+        </h2>
+        <div style="display: flex; gap: 0.5rem;">
+            <button onclick="buscarChunks()" class="button is-primary is-small">
+                <span class="icon"><i class="fas fa-search"></i></span>
+                <span>Buscar</span>
+            </button>
+            <button onclick="atualizarChunks()" class="button is-light is-small">
+                <span class="icon"><i class="fas fa-sync-alt"></i></span>
+                <span>Atualizar</span>
+            </button>
+        </div>
+    </div>
+    
+    {% if chunks %}
+    <div style="space-y: 1rem;">
+        {% for chunk in chunks %}
+        <div class="chunk-item" style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem; background: #fafafa;">
+            <div style="display: flex; justify-content: between; align-items: start; margin-bottom: 1rem;">
+                <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <span style="background: #3b82f6; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
+                            {{ chunk.id }}
+                        </span>
+                        <span style="color: #6b7280; font-size: 0.875rem;">
+                            {{ chunk.length }} caracteres
+                        </span>
+                        <span style="color: #6b7280; font-size: 0.875rem;">
+                            {{ chunk.created_at[:10] if chunk.created_at else 'N/A' }}
+                        </span>
+                    </div>
+                    <div style="color: #1f2937; line-height: 1.6;">
+                        {{ chunk.text[:200] }}{% if chunk.text|length > 200 %}...{% endif %}
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.5rem; margin-left: 1rem;">
+                    <button onclick="verChunkCompleto('{{ chunk.id }}')" class="button is-small is-info">
+                        <span class="icon"><i class="fas fa-eye"></i></span>
+                    </button>
+                    <button onclick="deletarChunk('{{ chunk.id }}')" class="button is-small is-danger">
+                        <span class="icon"><i class="fas fa-trash"></i></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 3rem; color: #9ca3af;">
+        <i class="fas fa-puzzle-piece" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+        <p>Nenhum chunk encontrado</p>
+        <p style="font-size: 0.875rem; margin-top: 0.5rem;">Adicione documentos para gerar chunks</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal para visualizar chunk completo -->
+<div id="chunk-modal" class="modal">
+    <div class="modal-background" onclick="fecharModal()"></div>
+    <div class="modal-card" style="width: 90%; max-width: 800px;">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Chunk Completo</p>
+            <button class="delete" onclick="fecharModal()"></button>
+        </header>
+        <section class="modal-card-body">
+            <div id="chunk-content" style="white-space: pre-wrap; line-height: 1.6; color: #1f2937;"></div>
+        </section>
+        <footer class="modal-card-foot">
+            <button class="button is-primary" onclick="fecharModal()">Fechar</button>
+        </footer>
+    </div>
+</div>
+
+<script>
+function verChunkCompleto(chunkId) {
+    // Buscar chunk completo via API
+    fetch(`/api/rags/{{ rag.id }}/chunks/${chunkId}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('chunk-content').textContent = data.text;
+            document.getElementById('chunk-modal').classList.add('is-active');
+        })
+        .catch(error => {
+            alert('Erro ao carregar chunk: ' + error.message);
+        });
+}
+
+function deletarChunk(chunkId) {
+    if (confirm('Tem certeza que deseja deletar este chunk?')) {
+        fetch(`/api/rags/{{ rag.id }}/chunks/${chunkId}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Chunk deletado com sucesso!');
+                location.reload();
+            } else {
+                alert('Erro ao deletar chunk: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Erro ao deletar chunk: ' + error.message);
+        });
+    }
+}
+
+function fecharModal() {
+    document.getElementById('chunk-modal').classList.remove('is-active');
+}
+
+function buscarChunks() {
+    const query = prompt('Digite o termo para buscar nos chunks:');
+    if (query) {
+        window.location.href = `/rags/{{ rag.id }}/chunks?busca=${encodeURIComponent(query)}`;
+    }
+}
+
+function atualizarChunks() {
+    location.reload();
+}
+</script>
+
+{% endblock %}

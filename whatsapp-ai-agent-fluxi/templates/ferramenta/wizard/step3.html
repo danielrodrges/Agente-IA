@@ -1,0 +1,486 @@
+{% extends "ferramenta/wizard/base.html" %}
+
+{% block wizard_content %}
+<form method="POST" action="/ferramentas/wizard/step3">
+    
+    {% if wizard_data.tool_type == 'web' %}
+    <!-- CURL Builder com Sidebar -->
+    <div class="columns">
+        <!-- SIDEBAR -->
+        <div class="column is-3">
+            <div class="box" style="position: sticky; top: 20px;">
+                <h3 class="title is-5">
+                    <span class="icon"><i class="fas fa-magic"></i></span>
+                    Variáveis
+                </h3>
+                
+                <!-- Tooltip -->
+                <div class="notification is-info is-light mb-4">
+                    <p class="is-size-7">
+                        <strong>💡 Como usar:</strong><br>
+                        Clique nos botões abaixo para inserir variáveis no cursor.<br>
+                        <code>{nome}</code> = Parâmetro<br>
+                        <code>{var.TOKEN}</code> = Token
+                    </p>
+                </div>
+
+                <!-- Parâmetros -->
+                <div class="mb-4">
+                    <p class="has-text-weight-bold mb-2">
+                        <span class="icon is-small"><i class="fas fa-sliders-h"></i></span>
+                        Parâmetros:
+                    </p>
+                    {% if wizard_data.params %}
+                        <div class="buttons are-small">
+                            {% for param_name in wizard_data.params.keys() %}
+                            <button type="button" class="button is-info is-light is-fullwidth" 
+                                    onclick="insertAtCursor('{' + '{{ param_name }}' + '}')">
+                                <span class="icon"><i class="fas fa-plus-circle"></i></span>
+                                <span>{{ '{' }}{{ param_name }}{{ '}' }}</span>
+                            </button>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="help">Nenhum parâmetro definido no Step 2</p>
+                    {% endif %}
+                </div>
+
+                <hr>
+
+                <!-- Tokens -->
+                <div>
+                    <p class="has-text-weight-bold mb-2">
+                        <span class="icon is-small"><i class="fas fa-key"></i></span>
+                        Tokens:
+                    </p>
+                    <div id="tokens_sidebar_list" class="mb-3">
+                        <!-- Tokens aparecerão aqui -->
+                    </div>
+                    <button type="button" class="button is-primary is-light is-fullwidth is-small" 
+                            onclick="openTokenModal()">
+                        <span class="icon"><i class="fas fa-plus"></i></span>
+                        <span>Adicionar Token</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN EDITOR -->
+        <div class="column is-9">
+            <div class="box">
+                <h2 class="title is-4">
+                    <i class="fas fa-terminal"></i> CURL Builder
+                </h2>
+
+                <!-- Cole CURL -->
+                <div class="field">
+                    <label class="label">Cole um CURL ou construa abaixo:</label>
+                    <div class="control">
+                        <textarea class="textarea code-editor" id="curl_input" rows="6" 
+                                  placeholder="curl -X POST https://api.example.com/users -H 'Authorization: Bearer {var.TOKEN}' -d '{&quot;name&quot;: &quot;{nome}&quot;}'">{{ wizard_data.curl_command or '' }}</textarea>
+                    </div>
+                    <div class="field is-grouped mt-2">
+                        <div class="control">
+                            <button type="button" class="button is-info" onclick="parseCurl()">
+                                <span class="icon"><i class="fas fa-magic"></i></span>
+                                <span>Parse CURL</span>
+                            </button>
+                        </div>
+                        <div class="control">
+                            <button type="button" class="button is-success" onclick="builderToCurl()">
+                                <span class="icon"><i class="fas fa-arrow-up"></i></span>
+                                <span>Builder → CURL</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <!-- Builder Visual -->
+                <h3 class="subtitle is-5">Builder Visual:</h3>
+
+                <div class="columns">
+                    <div class="column is-3">
+                        <div class="field">
+                            <label class="label">Método</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select id="builder_method" onchange="updateCurlPreview()">
+                                        <option value="GET">GET</option>
+                                        <option value="POST">POST</option>
+                                        <option value="PUT">PUT</option>
+                                        <option value="PATCH">PATCH</option>
+                                        <option value="DELETE">DELETE</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-9">
+                        <div class="field">
+                            <label class="label">URL</label>
+                            <div class="control">
+                                <input class="input" type="text" id="builder_url" 
+                                       placeholder="https://api.example.com/users"
+                                       onkeyup="updateCurlPreview()">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label">Headers</label>
+                    <div id="headers_list"></div>
+                    <button type="button" class="button is-small is-light" onclick="addHeader()">
+                        <span class="icon"><i class="fas fa-plus"></i></span>
+                        <span>Adicionar Header</span>
+                    </button>
+                </div>
+
+                <div class="field">
+                    <label class="label">Query Parameters</label>
+                    <div id="query_list"></div>
+                    <button type="button" class="button is-small is-light" onclick="addQueryParam()">
+                        <span class="icon"><i class="fas fa-plus"></i></span>
+                        <span>Adicionar Query Param</span>
+                    </button>
+                </div>
+
+                <div class="field" id="body_section">
+                    <label class="label">Body</label>
+                    <div class="control">
+                        <textarea class="textarea code-editor" id="builder_body" rows="8"
+                                  placeholder='{"name": "{nome}", "email": "{email}"}'
+                                  onkeyup="updateCurlPreview()"></textarea>
+                    </div>
+                </div>
+
+                <!-- Preview CURL -->
+                <div class="box mt-4" style="background: #1e1e1e;">
+                    <p class="has-text-weight-bold has-text-white mb-3">
+                        <span class="icon has-text-info"><i class="fas fa-eye"></i></span>
+                        Preview CURL:
+                    </p>
+                    <pre class="has-text-white" style="background: transparent;"><code id="curl_preview">{{ wizard_data.curl_command or 'Cole ou construa seu CURL acima' }}</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden inputs -->
+    <input type="hidden" name="curl_command" id="curl_command_hidden" value="{{ wizard_data.curl_command or '' }}">
+    <input type="hidden" name="tokens_data" id="tokens_data_hidden" value="">
+
+    {% else %}
+    <!-- Configuração CODE -->
+    <div class="box">
+        <h2 class="title is-4">
+            <i class="fas fa-code"></i> Configuração Code (Python)
+        </h2>
+        <div class="field">
+            <label class="label">Código Python *</label>
+            <div class="control">
+                <textarea class="textarea code-editor" name="codigo_python" rows="15" required>{{ wizard_data.codigo_python or '' }}</textarea>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Botões -->
+    <div class="field is-grouped is-grouped-right">
+        <div class="control">
+            <button type="submit" name="voltar" value="true" class="button is-light is-medium">
+                <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                <span>Voltar</span>
+            </button>
+        </div>
+        <div class="control">
+            <button type="submit" name="continuar" value="true" class="button is-primary is-medium" onclick="saveCurl()">
+                <span>Próximo</span>
+                <span class="icon"><i class="fas fa-arrow-right"></i></span>
+            </button>
+        </div>
+    </div>
+</form>
+
+<!-- Modal para Adicionar Token -->
+<div class="modal" id="token_modal">
+    <div class="modal-background" onclick="closeTokenModal()"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">
+                <span class="icon"><i class="fas fa-key"></i></span>
+                Adicionar Token
+            </p>
+            <button class="delete" aria-label="close" onclick="closeTokenModal()"></button>
+        </header>
+        <section class="modal-card-body">
+            <div class="field">
+                <label class="label">Nome do Token</label>
+                <div class="control">
+                    <input class="input" type="text" id="token_name_input" placeholder="API_TOKEN, SECRET_KEY, etc">
+                </div>
+                <p class="help">Será usado como <code>{var.NOME}</code></p>
+            </div>
+            <div class="field">
+                <label class="label">Valor</label>
+                <div class="control">
+                    <input class="input" type="password" id="token_value_input" placeholder="sk_live_abc123...">
+                </div>
+                <p class="help">Será armazenado de forma segura no banco</p>
+            </div>
+        </section>
+        <footer class="modal-card-foot">
+            <button type="button" class="button is-success" onclick="addToken()">Adicionar</button>
+            <button type="button" class="button" onclick="closeTokenModal()">Cancelar</button>
+        </footer>
+    </div>
+</div>
+
+<script>
+// Estado global
+let tokens = [];
+let lastFocusedInput = null;
+
+// Rastrear último input focado
+document.addEventListener('focusin', function(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        lastFocusedInput = e.target;
+    }
+});
+
+// Inserir no cursor
+function insertAtCursor(text) {
+    const input = lastFocusedInput || document.getElementById('curl_input');
+    if (!input) return;
+    
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    const value = input.value;
+    
+    input.value = value.substring(0, start) + text + value.substring(end);
+    input.focus();
+    input.selectionStart = input.selectionEnd = start + text.length;
+    
+    if (input.id === 'curl_input') {
+        updateCurlPreview();
+    }
+}
+
+// Modal de tokens
+function openTokenModal() {
+    document.getElementById('token_modal').classList.add('is-active');
+    document.getElementById('token_name_input').focus();
+}
+
+function closeTokenModal() {
+    document.getElementById('token_modal').classList.remove('is-active');
+    document.getElementById('token_name_input').value = '';
+    document.getElementById('token_value_input').value = '';
+}
+
+function addToken() {
+    const name = document.getElementById('token_name_input').value.trim();
+    const value = document.getElementById('token_value_input').value.trim();
+    
+    if (!name || !value) {
+        alert('Preencha nome e valor do token');
+        return;
+    }
+    
+    tokens.push({ name, value });
+    renderTokens();
+    closeTokenModal();
+    
+    // Salvar tokens
+    document.getElementById('tokens_data_hidden').value = JSON.stringify(tokens);
+}
+
+function renderTokens() {
+    const container = document.getElementById('tokens_sidebar_list');
+    container.innerHTML = '';
+    
+    tokens.forEach((token, index) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'button is-danger is-light is-fullwidth is-small mb-2';
+        btn.innerHTML = `
+            <span class="icon"><i class="fas fa-plus-circle"></i></span>
+            <span>{var.${token.name}}</span>
+        `;
+        btn.onclick = () => insertAtCursor(`{var.${token.name}}`);
+        container.appendChild(btn);
+    });
+}
+
+// Parse CURL (interno, sem alerts)
+function doParseCurl(showAlert = true) {
+    const curlText = document.getElementById('curl_input').value.trim();
+    if (!curlText) {
+        if (showAlert) alert('Cole um comando CURL primeiro!');
+        return false;
+    }
+    
+    try {
+        // Detectar método - verificar -X/--request OU presença de --data/--data-raw
+        const methodMatch = curlText.match(/(?:-X|--request)\s+([A-Z]+)/i);
+        const hasData = curlText.match(/(?:-d|--data|--data-raw)\s/);
+        const method = methodMatch ? methodMatch[1].toUpperCase() : (hasData ? 'POST' : 'GET');
+        document.getElementById('builder_method').value = method;
+        
+        const urlMatch = curlText.match(/(https?:\/\/[^\s"']+)/);
+        if (urlMatch) {
+            const fullUrl = urlMatch[1];
+            const [baseUrl, queryString] = fullUrl.split('?');
+            document.getElementById('builder_url').value = baseUrl;
+            
+            if (queryString) {
+                const params = queryString.split('&');
+                document.getElementById('query_list').innerHTML = '';
+                params.forEach(param => {
+                    const [key, value] = param.split('=');
+                    addQueryParam();
+                    const items = document.querySelectorAll('.query-item');
+                    const lastItem = items[items.length - 1];
+                    lastItem.querySelector('.query-key').value = decodeURIComponent(key);
+                    lastItem.querySelector('.query-value').value = decodeURIComponent(value || '');
+                });
+            }
+        }
+        
+        const headerRegex = /(?:-H|--header)\s+["']([^"']+)["']/g;
+        let headerMatch;
+        document.getElementById('headers_list').innerHTML = '';
+        while ((headerMatch = headerRegex.exec(curlText)) !== null) {
+            const header = headerMatch[1];
+            const [key, value] = header.split(':').map(s => s.trim());
+            addHeader();
+            const items = document.querySelectorAll('.header-item');
+            const lastItem = items[items.length - 1];
+            lastItem.querySelector('.header-key').value = key;
+            lastItem.querySelector('.header-value').value = value || '';
+        }
+        
+        // Parse body - suporta aspas simples e duplas, incluindo JSON com aspas escapadas
+        const bodyMatch = curlText.match(/(?:-d|--data|--data-raw|--data-binary)\s+(['"])([\s\S]*?)\1/);
+        if (bodyMatch) {
+            let bodyContent = bodyMatch[2];
+            // Decodificar escapes comuns
+            bodyContent = bodyContent.replace(/\\"/g, '"').replace(/\\'/g, "'");
+            document.getElementById('builder_body').value = bodyContent;
+        }
+        
+        updateCurlPreview();
+        if (showAlert) alert('✅ CURL parseado com sucesso!');
+        return true;
+    } catch (error) {
+        if (showAlert) alert('❌ Erro ao parsear CURL: ' + error.message);
+        return false;
+    }
+}
+
+// Parse CURL (com alert)
+function parseCurl() {
+    doParseCurl(true);
+}
+
+// Builder to CURL
+function builderToCurl() {
+    const method = document.getElementById('builder_method').value;
+    const url = document.getElementById('builder_url').value;
+    const body = document.getElementById('builder_body').value;
+    
+    let curl = `curl -X ${method} ${url}`;
+    
+    document.querySelectorAll('.header-item').forEach(item => {
+        const key = item.querySelector('.header-key').value;
+        const value = item.querySelector('.header-value').value;
+        if (key && value) {
+            curl += ` \\\n  -H "${key}: ${value}"`;
+        }
+    });
+    
+    document.querySelectorAll('.query-item').forEach(item => {
+        const key = item.querySelector('.query-key').value;
+        const value = item.querySelector('.query-value').value;
+        if (key) {
+            curl += (curl.includes('?') ? '&' : '?') + `${key}=${value}`;
+        }
+    });
+    
+    if (body && method !== 'GET') {
+        curl += ` \\\n  -d '${body}'`;
+    }
+    
+    document.getElementById('curl_input').value = curl;
+    document.getElementById('curl_preview').textContent = curl;
+}
+
+function updateCurlPreview() {
+    builderToCurl();
+}
+
+function addHeader() {
+    const container = document.getElementById('headers_list');
+    const div = document.createElement('div');
+    div.className = 'field has-addons header-item mb-2';
+    div.innerHTML = `
+        <div class="control is-expanded">
+            <input class="input header-key" type="text" placeholder="Header name" onkeyup="updateCurlPreview()">
+        </div>
+        <div class="control is-expanded">
+            <input class="input header-value" type="text" placeholder="Header value" onkeyup="updateCurlPreview()">
+        </div>
+        <div class="control">
+            <button type="button" class="button is-danger" onclick="this.parentElement.parentElement.remove(); updateCurlPreview();">
+                <span class="icon"><i class="fas fa-times"></i></span>
+            </button>
+        </div>
+    `;
+    container.appendChild(div);
+}
+
+function addQueryParam() {
+    const container = document.getElementById('query_list');
+    const div = document.createElement('div');
+    div.className = 'field has-addons query-item mb-2';
+    div.innerHTML = `
+        <div class="control is-expanded">
+            <input class="input query-key" type="text" placeholder="Param name" onkeyup="updateCurlPreview()">
+        </div>
+        <div class="control is-expanded">
+            <input class="input query-value" type="text" placeholder="Param value" onkeyup="updateCurlPreview()">
+        </div>
+        <div class="control">
+            <button type="button" class="button is-danger" onclick="this.parentElement.parentElement.remove(); updateCurlPreview();">
+                <span class="icon"><i class="fas fa-times"></i></span>
+            </button>
+        </div>
+    `;
+    container.appendChild(div);
+}
+
+function saveCurl() {
+    // Se o builder foi usado, atualizar o CURL
+    const builderUrl = document.getElementById('builder_url').value;
+    if (builderUrl) {
+        builderToCurl();
+    }
+    const curlText = document.getElementById('curl_input').value;
+    document.getElementById('curl_command_hidden').value = curlText;
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    addHeader();
+    addHeader();
+    
+    // Se houver um CURL já definido, fazer parse automático (sem alert)
+    const curlInput = document.getElementById('curl_input');
+    if (curlInput && curlInput.value.trim()) {
+        doParseCurl(false);
+    }
+});
+</script>
+{% endblock %}

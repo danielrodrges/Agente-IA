@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titulo }} - Fluxi.IA{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="level">
+        <div class="level-left">
+            <div class="level-item">
+                <h1 class="title is-3">
+                    <i class="fas fa-chart-line"></i>
+                    {{ titulo }}
+                </h1>
+            </div>
+        </div>
+        <div class="level-right">
+            <div class="level-item">
+                <a href="/provedores-llm/{{ provedor.id }}/detalhes" class="button is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>Voltar</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Métricas Principais -->
+    <div class="columns">
+        <div class="column is-one-quarter">
+            <div class="metric-card">
+                <div class="metric-value">{{ estatisticas.total_requisicoes }}</div>
+                <div class="metric-label">Total de Requisições</div>
+            </div>
+        </div>
+        <div class="column is-one-quarter">
+            <div class="metric-card">
+                <div class="metric-value">{{ estatisticas.requisicoes_sucesso }}</div>
+                <div class="metric-label">Sucessos</div>
+            </div>
+        </div>
+        <div class="column is-one-quarter">
+            <div class="metric-card">
+                <div class="metric-value">{{ estatisticas.requisicoes_erro }}</div>
+                <div class="metric-label">Erros</div>
+            </div>
+        </div>
+        <div class="column is-one-quarter">
+            <div class="metric-card">
+                <div class="metric-value">{{ "%.1f"|format(estatisticas.tempo_medio_ms) }}ms</div>
+                <div class="metric-label">Tempo Médio</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Taxa de Sucesso -->
+    {% if estatisticas.total_requisicoes > 0 %}
+    <div class="columns">
+        <div class="column is-full">
+            <div class="box">
+                <h3 class="title is-5">
+                    <i class="fas fa-percentage"></i>
+                    Taxa de Sucesso
+                </h3>
+                
+                <div class="content">
+                    {% set taxa_sucesso = (estatisticas.requisicoes_sucesso / estatisticas.total_requisicoes * 100) %}
+                    <div class="level">
+                        <div class="level-left">
+                            <div class="level-item">
+                                <div class="progress-container">
+                                    <progress class="progress is-primary" 
+                                              value="{{ taxa_sucesso }}" 
+                                              max="100">{{ taxa_sucesso }}%</progress>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="level-right">
+                            <div class="level-item">
+                                <span class="tag is-primary is-large">{{ "%.1f"|format(taxa_sucesso) }}%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Informações Adicionais -->
+    <div class="columns">
+        <div class="column is-half">
+            <div class="box">
+                <h3 class="title is-5">
+                    <i class="fas fa-clock"></i>
+                    Informações Temporais
+                </h3>
+                
+                <div class="content">
+                    {% if estatisticas.ultima_requisicao %}
+                    <div class="field">
+                        <label class="label">Última Requisição</label>
+                        <p class="control">
+                            <span class="icon">
+                                <i class="fas fa-clock"></i>
+                            </span>
+                            {{ estatisticas.ultima_requisicao.strftime('%d/%m/%Y %H:%M:%S') }}
+                        </p>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="field">
+                        <label class="label">Tempo Médio de Resposta</label>
+                        <p class="control">
+                            <span class="icon">
+                                <i class="fas fa-tachometer-alt"></i>
+                            </span>
+                            {{ "%.1f"|format(estatisticas.tempo_medio_ms) }} ms
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="column is-half">
+            <div class="box">
+                <h3 class="title is-5">
+                    <i class="fas fa-cube"></i>
+                    Modelos Carregados
+                </h3>
+                
+                <div class="content">
+                    {% if estatisticas.modelos_carregados %}
+                    <div class="tags">
+                        {% for modelo in estatisticas.modelos_carregados %}
+                        <span class="tag is-info">{{ modelo }}</span>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="has-text-grey">Nenhum modelo carregado</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumo de Performance -->
+    <div class="columns">
+        <div class="column is-full">
+            <div class="box">
+                <h3 class="title is-5">
+                    <i class="fas fa-chart-bar"></i>
+                    Resumo de Performance
+                </h3>
+                
+                <div class="content">
+                    <div class="columns">
+                        <div class="column is-one-third">
+                            <div class="has-text-centered">
+                                <p class="title is-4 has-text-success">{{ estatisticas.requisicoes_sucesso }}</p>
+                                <p class="subtitle is-6">Requisições Bem-sucedidas</p>
+                            </div>
+                        </div>
+                        <div class="column is-one-third">
+                            <div class="has-text-centered">
+                                <p class="title is-4 has-text-danger">{{ estatisticas.requisicoes_erro }}</p>
+                                <p class="subtitle is-6">Requisições com Erro</p>
+                            </div>
+                        </div>
+                        <div class="column is-one-third">
+                            <div class="has-text-centered">
+                                <p class="title is-4 has-text-info">{{ "%.1f"|format(estatisticas.tempo_medio_ms) }}ms</p>
+                                <p class="subtitle is-6">Tempo Médio</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titulo }} - Fluxi{% endblock %}
+
+{% block content %}
+<div class="hero is-primary is-small">
+    <div class="hero-body">
+        <h1 class="title">
+            <i class="fab fa-whatsapp"></i> Conectar WhatsApp
+        </h1>
+        <p class="subtitle">
+            {{ sessao.nome }}
+        </p>
+    </div>
+</div>
+
+<div class="section">
+    <div class="columns">
+        <div class="column is-8 is-offset-2">
+            
+            {% if sessao.status == 'conectado' %}
+            <!-- Já Conectado -->
+            <div class="notification is-success">
+                <h2 class="title is-4">✅ Sessão Conectada!</h2>
+                <p><strong>Telefone:</strong> {{ sessao.telefone }}</p>
+                <p><strong>Última conexão:</strong> {{ sessao.ultima_conexao.strftime('%d/%m/%Y %H:%M') if sessao.ultima_conexao else '-' }}</p>
+                <br>
+                <div class="buttons">
+                    <a href="/sessoes/{{ sessao.id }}/detalhes" class="button is-info">
+                        <span class="icon"><i class="fas fa-eye"></i></span>
+                        <span>Ver Detalhes</span>
+                    </a>
+                    <form method="POST" action="/sessoes/{{ sessao.id }}/desconectar" style="display: inline;">
+                        <button type="submit" class="button is-danger">
+                            <span class="icon"><i class="fas fa-plug"></i></span>
+                            <span>Desconectar</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            {% elif sessao.status == 'conectando_qr' %}
+            <!-- Aguardando QR Code -->
+            <div class="box has-text-centered">
+                <h2 class="title is-3">📱 QR Code</h2>
+                
+                {% if qr_code_expirado %}
+                <!-- QR Code Expirado -->
+                <div class="notification is-warning">
+                    <span class="icon is-large" style="font-size: 3rem; color: #ff9800;">
+                        <i class="fas fa-clock"></i>
+                    </span>
+                    <h3 class="title is-4">⏰ QR Code Expirado</h3>
+                    <p>O QR Code expira após 60 segundos por segurança.</p>
+                    <p>Clique no botão abaixo para gerar um novo código.</p>
+                    <br>
+                    <form method="POST" action="/sessoes/{{ sessao.id }}/conectar">
+                        <button type="submit" class="button is-warning is-large">
+                            <span class="icon"><i class="fas fa-redo"></i></span>
+                            <span>Gerar Novo QR Code</span>
+                        </button>
+                    </form>
+                </div>
+                
+                {% elif sessao.qr_code %}
+                <!-- QR Code Válido -->
+                <div class="qr-code-container" style="position: relative;">
+                    <img src="data:image/png;base64,{{ sessao.qr_code }}" alt="QR Code" style="max-width: 300px; border: 2px solid #dbdbdb; border-radius: 8px;">
+                    
+                    <!-- Indicador de tempo -->
+                    <div class="notification is-light" style="margin-top: 1rem;">
+                        <p class="is-size-7">
+                            <i class="fas fa-clock"></i> Este QR Code expira em <strong>60 segundos</strong>
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="notification is-info is-light">
+                    <h3 class="title is-5">📱 Como conectar:</h3>
+                    <ol style="text-align: left; display: inline-block;">
+                        <li>Abra o <strong>WhatsApp</strong> no seu celular</li>
+                        <li>Toque em <strong>Menu (⋮)</strong> ou <strong>Configurações</strong></li>
+                        <li>Toque em <strong>Aparelhos conectados</strong></li>
+                        <li>Toque em <strong>Conectar um aparelho</strong></li>
+                        <li><strong>Escaneie o QR Code</strong> acima</li>
+                    </ol>
+                </div>
+                {% else %}
+                <!-- Gerando QR Code -->
+                <div class="notification is-warning">
+                    <p class="title is-5">⏳ Gerando QR Code...</p>
+                    <p>Aguarde alguns segundos...</p>
+                </div>
+                {% endif %}
+                
+                <br>
+                <div class="buttons is-centered">
+                    <button class="button is-light" onclick="location.reload()">
+                        <span class="icon"><i class="fas fa-sync"></i></span>
+                        <span>Atualizar Status</span>
+                    </button>
+                    
+                    {% if sessao.qr_code and not qr_code_expirado %}
+                    <form method="POST" action="/sessoes/{{ sessao.id }}/conectar" style="display: inline;">
+                        <button type="submit" class="button is-warning">
+                            <span class="icon"><i class="fas fa-redo"></i></span>
+                            <span>Gerar Novo QR Code</span>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% elif sessao.status == 'erro' %}
+            <!-- Erro -->
+            <div class="notification is-danger">
+                <h2 class="title is-4">❌ Erro ao Conectar</h2>
+                <p>Ocorreu um erro ao tentar conectar a sessão.</p>
+                <br>
+                <button class="button is-light" onclick="location.reload()">
+                    <span class="icon"><i class="fas fa-sync"></i></span>
+                    <span>Tentar Novamente</span>
+                </button>
+            </div>
+            
+            {% elif sessao.status == 'iniciando' %}
+            <!-- Iniciando Conexão -->
+            <div class="box has-text-centered">
+                <div class="notification is-info is-light">
+                    <span class="icon is-large" style="font-size: 3rem; color: #3273dc;">
+                        <i class="fas fa-spinner fa-pulse"></i>
+                    </span>
+                    <h2 class="title is-4">⏳ Iniciando Conexão...</h2>
+                    <p>Preparando conexão com WhatsApp. O QR Code será exibido em instantes.</p>
+                    <br>
+                    <progress class="progress is-primary" max="100">60%</progress>
+                </div>
+            </div>
+            
+            {% else %}
+            <!-- Iniciar Conexão -->
+            <div class="box has-text-centered">
+                <span class="icon is-large" style="font-size: 5rem; color: #48c774;">
+                    <i class="fab fa-whatsapp"></i>
+                </span>
+                <h2 class="title is-3">Conectar ao WhatsApp</h2>
+                <p class="subtitle is-5">Escaneie o QR Code com seu celular</p>
+                
+                <br>
+                
+                <div class="notification is-info is-light" style="text-align: left; max-width: 500px; margin: 0 auto;">
+                    <h3 class="title is-5">📱 Como funciona:</h3>
+                    <ol>
+                        <li>Clique no botão abaixo para iniciar</li>
+                        <li>Um QR Code será gerado</li>
+                        <li>Abra o <strong>WhatsApp</strong> no seu celular</li>
+                        <li>Vá em <strong>Menu > Aparelhos conectados</strong></li>
+                        <li><strong>Escaneie o QR Code</strong> que aparecerá</li>
+                    </ol>
+                </div>
+                
+                <br>
+                
+                <form method="POST" action="/sessoes/{{ sessao.id }}/conectar">
+                    <input type="hidden" name="metodo" value="qrcode">
+                    <button type="submit" class="button is-success is-large">
+                        <span class="icon"><i class="fas fa-qrcode"></i></span>
+                        <span>Gerar QR Code</span>
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+            
+            <br>
+            <div class="buttons is-centered">
+                <a href="/sessoes" class="button is-light">
+                    <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                    <span>Voltar</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Auto-refresh quando estiver aguardando conexão -->
+{% if sessao.status in ['iniciando', 'conectando_qr'] %}
+<meta http-equiv="refresh" content="3">
+{% endif %}
+{% endblock %}

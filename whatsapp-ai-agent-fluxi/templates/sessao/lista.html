@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}Sessões WhatsApp - Fluxi.IA{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="box" style="background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); border: none; margin-bottom: 2rem; padding: 2rem;">
+    <h1 class="title is-3" style="color: white; margin-bottom: 0.75rem !important; line-height: 1.2;">
+        <i class="fab fa-whatsapp"></i> Sessões WhatsApp
+    </h1>
+    <p class="subtitle is-6" style="color: rgba(255,255,255,0.95); margin-bottom: 0 !important; line-height: 1.4;">
+        Gerencie suas conexões WhatsApp e agentes
+    </p>
+</div>
+
+<!-- Stats & Actions -->
+<div class="level" style="background: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; border: 1px solid #e5e7eb;">
+    <div class="level-left">
+        <div class="level-item">
+            <div>
+                <p class="heading" style="color: #6b7280; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px;">Total de Sessões</p>
+                <p class="title is-4" style="margin-bottom: 0;">
+                    <span style="background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                        {{ sessoes|length }}
+                    </span>
+                </p>
+            </div>
+        </div>
+        <div class="level-item" style="margin-left: 3rem;">
+            <div>
+                <p class="heading" style="color: #6b7280; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px;">Conectadas</p>
+                <p class="title is-4" style="margin-bottom: 0; color: #10b981;">
+                    {{ sessoes|selectattr("status", "equalto", "conectado")|list|length }}
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="level-right">
+        <div class="level-item">
+            <a href="/sessoes/nova" class="button is-primary is-medium" style="background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); border: none; border-radius: 8px; font-weight: 600;">
+                <span class="icon"><i class="fas fa-plus-circle"></i></span>
+                <span>Nova Sessão</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Sessões Grid -->
+{% if sessoes %}
+<div class="columns is-multiline">
+    {% for sessao in sessoes %}
+    <div class="column is-12-mobile is-6-tablet is-4-desktop">
+        <div class="card" style="height: 100%; display: flex; flex-direction: column;">
+            <!-- Card Header -->
+            <div class="card-content" style="flex: 1;">
+                <div class="media" style="margin-bottom: 1rem;">
+                    <div class="media-left">
+                        <div style="width: 56px; height: 56px; border-radius: 12px; background: {% if sessao.status == 'conectado' %}linear-gradient(135deg, #10b981 0%, #059669 100%){% else %}linear-gradient(135deg, #6b7280 0%, #4b5563 100%){% endif %}; display: flex; align-items: center; justify-content: center;">
+                            <i class="fab fa-whatsapp" style="font-size: 1.75rem; color: white;"></i>
+                        </div>
+                    </div>
+                    <div class="media-content">
+                        <p class="title is-5" style="margin-bottom: 0.25rem; font-weight: 700;">{{ sessao.nome }}</p>
+                    </div>
+                </div>
+
+                <!-- Status Badges -->
+                <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <span class="status-badge status-{{ sessao.status }}">
+                        {% if sessao.status == 'conectado' %}
+                            <i class="fas fa-check-circle"></i>
+                        {% elif sessao.status == 'conectando' %}
+                            <i class="fas fa-spinner fa-pulse"></i>
+                        {% else %}
+                            <i class="fas fa-times-circle"></i>
+                        {% endif %}
+                        {{ sessao.status }}
+                    </span>
+                    {% if sessao.auto_responder %}
+                    <span class="tag" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border-radius: 50px; font-size: 0.75rem; font-weight: 600;">
+                        <i class="fas fa-robot"></i>&nbsp; Auto-responder
+                    </span>
+                    {% endif %}
+                </div>
+
+                <!-- Info -->
+                <div style="font-size: 0.875rem; color: #6b7280; line-height: 1.8;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                        <i class="fas fa-brain" style="width: 16px;"></i>
+                        <span><strong>Modelo:</strong> {{ sessao.modelo_llm or 'Padrão' }}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-clock" style="width: 16px;"></i>
+                        <span>
+                            {% if sessao.ultima_conexao %}
+                                {{ sessao.ultima_conexao.strftime('%d/%m/%Y %H:%M') }}
+                            {% else %}
+                                <span style="color: #9ca3af;">Nunca conectado</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Card Actions -->
+            <footer class="card-footer" style="border-top: 1px solid #e5e7eb;">
+                <a href="/sessoes/{{ sessao.id }}/detalhes" class="card-footer-item" style="font-weight: 600; color: #5B4E9B;">
+                    <span class="icon"><i class="fas fa-eye"></i></span>
+                    <span>Detalhes</span>
+                </a>
+                
+                <a href="/mensagens/sessao/{{ sessao.id }}" class="card-footer-item" style="font-weight: 600; color: #25D366;">
+                    <span class="icon"><i class="fas fa-comments"></i></span>
+                    <span>Histórico</span>
+                </a>
+                
+                {% if sessao.status == 'conectado' %}
+                <form method="POST" action="/sessoes/{{ sessao.id }}/desconectar" style="flex: 1;">
+                    <button type="submit" class="card-footer-item" style="border: none; background: none; cursor: pointer; font-weight: 600; color: #ef4444; width: 100%;">
+                        <span class="icon"><i class="fas fa-power-off"></i></span>
+                        <span>Desconectar</span>
+                    </button>
+                </form>
+                {% else %}
+                <a href="/sessoes/{{ sessao.id }}/conectar" class="card-footer-item" style="font-weight: 600; color: #10b981;">
+                    <span class="icon"><i class="fas fa-plug"></i></span>
+                    <span>Conectar</span>
+                </a>
+                {% endif %}
+            </footer>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<!-- Empty State -->
+<div class="box" style="text-align: center; padding: 4rem 2rem; background: white; border: 2px dashed #e5e7eb;">
+    <div style="margin-bottom: 1.5rem;">
+        <span style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, rgba(199, 91, 155, 0.1) 0%, rgba(91, 78, 155, 0.1) 100%); display: inline-flex; align-items: center; justify-content: center;">
+            <i class="fab fa-whatsapp" style="font-size: 2.5rem; background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"></i>
+        </span>
+    </div>
+    <h3 class="title is-4" style="margin-bottom: 0.75rem;">Nenhuma sessão cadastrada</h3>
+    <p style="color: #6b7280; margin-bottom: 2rem; max-width: 400px; margin-left: auto; margin-right: auto;">
+        Crie sua primeira sessão WhatsApp para começar a usar o Fluxi.IA e automatizar suas conversas com IA.
+    </p>
+    <a href="/sessoes/nova" class="button is-primary is-medium" style="background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); border: none; border-radius: 8px; font-weight: 600;">
+        <span class="icon"><i class="fas fa-plus-circle"></i></span>
+        <span>Criar Primeira Sessão</span>
+    </a>
+</div>
+{% endif %}
+
+<!-- Footer de Documentação -->
+<div class="box" style="background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border: 2px solid #e5e7eb; margin-top: 3rem;">
+    <div style="display: flex; gap: 2rem; align-items: start; flex-wrap: wrap;">
+        <div style="flex-shrink: 0;">
+            <div style="width: 64px; height: 64px; border-radius: 12px; background: linear-gradient(135deg, rgba(199, 91, 155, 0.1) 0%, rgba(91, 78, 155, 0.1) 100%); display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-book-open" style="font-size: 1.75rem; color: #C75B9B;"></i>
+            </div>
+        </div>
+        <div style="flex: 1; min-width: 300px;">
+            <h3 style="font-size: 1.125rem; font-weight: 700; color: #1f2937; margin-bottom: 0.75rem;">
+                <i class="fas fa-lightbulb"></i> Entenda o conceito de Sessão
+            </h3>
+            <div style="color: #4b5563; line-height: 1.7; font-size: 0.9375rem;">
+                <p style="margin-bottom: 1rem;">
+                    <strong style="color: #1f2937;">Uma Sessão é o seu canal WhatsApp conectado.</strong> É por onde as mensagens entram e saem. Pense na sessão como a "linha telefônica" do seu bot.
+                </p>
+                <div style="background: white; border-radius: 8px; padding: 1.25rem; border-left: 4px solid #C75B9B;">
+                    <p style="font-size: 0.875rem; margin-bottom: 0.5rem;"><strong style="color: #1f2937;">📱 1 Sessão</strong> = 1 número WhatsApp conectado</p>
+                    <p style="font-size: 0.875rem; margin-bottom: 0.5rem;"><strong style="color: #1f2937;">🤖 Múltiplos Agentes</strong> = Diferentes personalidades IA respondendo na mesma sessão</p>
+                    <p style="font-size: 0.875rem; margin-bottom: 0;"><strong style="color: #1f2937;">💬 Mensagens</strong> = Conversas que fluem através da sessão</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

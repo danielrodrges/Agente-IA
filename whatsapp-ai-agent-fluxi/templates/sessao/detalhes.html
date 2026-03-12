@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+
+{% block title %}{{ sessao.nome }} - Detalhes - Fluxi.IA{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; flex-wrap: wrap; gap: 1.5rem;">
+    <div style="min-width: 0; flex: 1;">
+        <nav class="breadcrumb" aria-label="breadcrumbs" style="margin-bottom: 0.75rem !important;">
+            <ul style="margin-bottom: 0 !important;">
+                <li><a href="/sessoes" style="color: #6b7280;"><i class="fas fa-home"></i> Sessões</a></li>
+                <li class="is-active"><a style="color: #C75B9B;">{{ sessao.nome }}</a></li>
+            </ul>
+        </nav>
+        <h1 class="title is-3" style="margin-bottom: 0.75rem !important; line-height: 1.2;">
+            <i class="fab fa-whatsapp" style="color: #25D366;"></i> {{ sessao.nome }}
+        </h1>
+        <p class="subtitle is-6" style="color: #6b7280; margin-bottom: 0 !important; line-height: 1.4;">
+            Detalhes completos da sessão WhatsApp
+        </p>
+    </div>
+    <div style="flex-shrink: 0;">
+        <span class="status-badge status-{{ sessao.status }}" style="font-size: 1rem; padding: 0.5rem 1.25rem;">
+            {% if sessao.status == 'conectado' %}
+                <i class="fas fa-check-circle"></i>
+            {% elif sessao.status == 'conectando' %}
+                <i class="fas fa-spinner fa-pulse"></i>
+            {% else %}
+                <i class="fas fa-times-circle"></i>
+            {% endif %}
+            {{ sessao.status|upper }}
+        </span>
+    </div>
+</div>
+
+<div class="columns">
+    <div class="column is-8">
+        <!-- Informações Principais -->
+        <div class="box" style="margin-bottom: 2rem;">
+            <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
+                <i class="fas fa-info-circle" style="color: #C75B9B;"></i> Informações da Sessão
+            </h2>
+            
+            <div style="display: grid; gap: 1.25rem;">
+                <div style="display: flex; align-items: start; gap: 1rem;">
+                    <div style="width: 40px; height: 40px; border-radius: 8px; background: linear-gradient(135deg, rgba(199, 91, 155, 0.1) 0%, rgba(91, 78, 155, 0.1) 100%); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="fas fa-tag" style="color: #C75B9B;"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <p style="color: #6b7280; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.25rem;">Nome da Sessão</p>
+                        <p style="font-size: 1rem; font-weight: 600; color: #1f2937;">{{ sessao.nome }}</p>
+                    </div>
+                </div>
+
+                {% if sessao.telefone %}
+                <div style="display: flex; align-items: start; gap: 1rem;">
+                    <div style="width: 40px; height: 40px; border-radius: 8px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="fas fa-phone" style="color: #10b981;"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <p style="color: #6b7280; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.25rem;">Telefone</p>
+                        <p style="font-size: 1rem; font-weight: 600; color: #1f2937;">{{ sessao.telefone }}</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div style="display: flex; align-items: start; gap: 1rem;">
+                    <div style="width: 40px; height: 40px; border-radius: 8px; background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="fas fa-robot" style="color: #3b82f6;"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <p style="color: #6b7280; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.25rem;">Auto-responder</p>
+                        <p style="font-size: 1rem; font-weight: 600;">
+                            {% if sessao.auto_responder %}
+                            <span style="color: #10b981;"><i class="fas fa-check-circle"></i> Ativo</span>
+                            {% else %}
+                            <span style="color: #6b7280;"><i class="fas fa-times-circle"></i> Inativo</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <p style="color: #6b7280; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem;">
+                            <i class="fas fa-calendar-plus"></i> Criado em
+                        </p>
+                        <p style="font-weight: 600;">{{ sessao.criado_em.strftime('%d/%m/%Y às %H:%M') }}</p>
+                    </div>
+                    <div style="flex: 1; min-width: 200px;">
+                        <p style="color: #6b7280; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem;">
+                            <i class="fas fa-clock"></i> Última conexão
+                        </p>
+                        <p style="font-weight: 600;">{{ sessao.ultima_conexao.strftime('%d/%m/%Y às %H:%M') if sessao.ultima_conexao else 'Nunca conectado' }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Agente Ativo -->
+        <div class="box" style="margin-bottom: 2rem;">
+            <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
+                <i class="fas fa-robot" style="color: #5B4E9B;"></i> Agente Ativo
+            </h2>
+            
+            {% if sessao.agente_ativo %}
+            <div style="display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: linear-gradient(135deg, rgba(199, 91, 155, 0.05) 0%, rgba(91, 78, 155, 0.05) 100%); border-radius: 12px; border: 2px solid rgba(199, 91, 155, 0.2);">
+                <div style="width: 56px; height: 56px; border-radius: 12px; background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <i class="fas fa-robot" style="color: white; font-size: 1.5rem;"></i>
+                </div>
+                <div style="flex: 1;">
+                    <p style="font-weight: 700; font-size: 1.125rem; color: #1f2937; margin-bottom: 0.25rem;">
+                        {{ sessao.agente_ativo.nome }}
+                    </p>
+                    <p style="color: #6b7280; font-size: 0.875rem; line-height: 1.5;">
+                        <i class="fas fa-info-circle"></i> Este agente está respondendo as mensagens desta sessão
+                    </p>
+                </div>
+                <a href="/agentes/{{ sessao.agente_ativo.id }}/editar" class="button is-small" style="background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); color: white; border: none; font-weight: 600;">
+                    <span class="icon"><i class="fas fa-edit"></i></span>
+                    <span>Editar</span>
+                </a>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 2rem; background: #fef3c7; border-radius: 12px; border: 2px dashed #f59e0b;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #f59e0b; margin-bottom: 1rem;"></i>
+                <p style="font-weight: 600; color: #92400e; margin-bottom: 0.5rem;">Nenhum agente ativo</p>
+                <p style="font-size: 0.875rem; color: #78350f; margin-bottom: 1rem;">Esta sessão não tem um agente configurado para responder</p>
+                <a href="/agentes/sessao/{{ sessao.id }}" class="button is-warning is-small" style="font-weight: 600;">
+                    <span class="icon"><i class="fas fa-plus"></i></span>
+                    <span>Criar Agente</span>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Configurações da Sessão -->
+        <div class="box" style="margin-bottom: 2rem;">
+            <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
+                <i class="fas fa-cog" style="color: #6b7280;"></i> Configurações
+            </h2>
+            
+            <div style="display: grid; gap: 1rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 1.25rem; background: {% if sessao.auto_responder %}linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%){% else %}#f9fafb{% endif %}; border-radius: 12px; border: 2px solid {% if sessao.auto_responder %}#10b981{% else %}#e5e7eb{% endif %};">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div style="width: 48px; height: 48px; border-radius: 10px; background: {% if sessao.auto_responder %}#10b981{% else %}#6b7280{% endif %}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <i class="fas fa-robot" style="color: white; font-size: 1.25rem;"></i>
+                        </div>
+                        <div>
+                            <p style="font-weight: 700; color: #1f2937; margin-bottom: 0.25rem; font-size: 1.0625rem;">Auto-responder com IA</p>
+                            <p style="font-size: 0.875rem; color: #6b7280; line-height: 1.5;">Agente ativo responde automaticamente as mensagens</p>
+                        </div>
+                    </div>
+                    <span class="tag is-large" style="background: {% if sessao.auto_responder %}#10b981{% else %}#6b7280{% endif %}; color: white; font-weight: 700; border-radius: 8px; padding: 0.5rem 1.25rem;">
+                        {% if sessao.auto_responder %}<i class="fas fa-check"></i> Ativo{% else %}<i class="fas fa-times"></i> Inativo{% endif %}
+                    </span>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <i class="fas fa-toggle-on" style="color: {% if sessao.ativa %}#10b981{% else %}#ef4444{% endif %}; font-size: 1.5rem;"></i>
+                        <div>
+                            <p style="font-weight: 600; color: #1f2937; margin-bottom: 0.25rem;">Status da Sessão</p>
+                            <p style="font-size: 0.8125rem; color: #6b7280;">Sessão pode receber e processar mensagens</p>
+                        </div>
+                    </div>
+                    <span class="tag" style="background: {% if sessao.ativa %}#dcfce7{% else %}#fee2e2{% endif %}; color: {% if sessao.ativa %}#166534{% else %}#991b1b{% endif %}; font-weight: 600;">
+                        {% if sessao.ativa %}Ativa{% else %}Desativada{% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ações Rápidas -->
+    <div class="column is-4">
+        <!-- Conexão Status Card -->
+        <div class="box" style="margin-bottom: 1.5rem; background: {% if sessao.status == 'conectado' %}linear-gradient(135deg, #10b981 0%, #059669 100%){% else %}linear-gradient(135deg, #6b7280 0%, #4b5563 100%){% endif %}; border: none; color: white;">
+            <div style="text-align: center; padding: 1rem 0;">
+                <i class="fas fa-{% if sessao.status == 'conectado' %}check-circle{% else %}times-circle{% endif %}" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.9;"></i>
+                <h3 class="title is-5" style="color: white; margin-bottom: 0.5rem;">
+                    {% if sessao.status == 'conectado' %}Conectado{% elif sessao.status == 'conectando' %}Conectando...{% else %}Desconectado{% endif %}
+                </h3>
+                <p style="opacity: 0.9; font-size: 0.875rem;">
+                    {% if sessao.status == 'conectado' %}
+                        WhatsApp ativo e pronto
+                    {% else %}
+                        WhatsApp não conectado
+                    {% endif %}
+                </p>
+                
+                <!-- Botão de Conexão -->
+                <div style="margin-top: 1.5rem;">
+                    {% if sessao.status == 'conectado' %}
+                    <form method="POST" action="/sessoes/{{ sessao.id }}/desconectar">
+                        <button type="submit" class="button is-light is-fullwidth" style="font-weight: 600;">
+                            <span class="icon"><i class="fas fa-power-off"></i></span>
+                            <span>Desconectar</span>
+                        </button>
+                    </form>
+                    {% else %}
+                    <a href="/sessoes/{{ sessao.id }}/conectar" class="button is-light is-fullwidth" style="font-weight: 600;">
+                        <span class="icon"><i class="fas fa-plug"></i></span>
+                        <span>Conectar WhatsApp</span>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Ações Card -->
+        <div class="box" style="margin-bottom: 1.5rem;">
+            <h2 class="title is-6" style="margin-bottom: 1rem; color: #6b7280; font-weight: 700; text-transform: uppercase; font-size: 0.8125rem; letter-spacing: 0.5px;">
+                <i class="fas fa-bolt"></i> Ações Rápidas
+            </h2>
+            
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <a href="/mensagens/sessao/{{ sessao.id }}" class="button is-fullwidth" style="justify-content: flex-start; background: linear-gradient(135deg, rgba(37, 211, 102, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%); border: 1px solid rgba(37, 211, 102, 0.3); color: #25D366; font-weight: 600;">
+                    <span class="icon"><i class="fas fa-comments"></i></span>
+                    <span>Histórico de Mensagens</span>
+                </a>
+                
+                <a href="/agentes/sessao/{{ sessao.id }}" class="button is-fullwidth" style="justify-content: flex-start; background: linear-gradient(135deg, rgba(199, 91, 155, 0.1) 0%, rgba(91, 78, 155, 0.1) 100%); border: 1px solid rgba(199, 91, 155, 0.3); color: #C75B9B; font-weight: 600;">
+                    <span class="icon"><i class="fas fa-robot"></i></span>
+                    <span>Gerenciar Agentes</span>
+                </a>
+                
+                <a href="/sessoes/{{ sessao.id }}/editar" class="button is-fullwidth" style="justify-content: flex-start; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); color: #3b82f6; font-weight: 600;">
+                    <span class="icon"><i class="fas fa-edit"></i></span>
+                    <span>Editar Sessão</span>
+                </a>
+                
+                <a href="/sessoes/{{ sessao.id }}/tipos-mensagem" class="button is-fullwidth" style="justify-content: flex-start; background: rgba(236, 72, 153, 0.1); border: 1px solid rgba(236, 72, 153, 0.3); color: #ec4899; font-weight: 600;">
+                    <span class="icon"><i class="fas fa-comments"></i></span>
+                    <span>Tipos de Mensagem</span>
+                </a>
+                
+                <a href="/sessoes/{{ sessao.id }}/comandos" class="button is-fullwidth" style="justify-content: flex-start; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); color: #8b5cf6; font-weight: 600;">
+                    <span class="icon"><i class="fas fa-terminal"></i></span>
+                    <span>Comandos Personalizáveis</span>
+                </a>
+                
+                <a href="/agentes/{{ sessao.agente_ativo_id or 'novo' }}/ferramentas" class="button is-fullwidth" style="justify-content: flex-start; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); color: #3b82f6; font-weight: 600;">
+                    <span class="icon"><i class="fas fa-tools"></i></span>
+                    <span>Configurar Ferramentas</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Zona de Perigo -->
+        <div class="box" style="border: 2px solid #fee2e2; background: #fef2f2;">
+            <h2 class="title is-6" style="margin-bottom: 1rem; color: #dc2626; font-weight: 700; text-transform: uppercase; font-size: 0.8125rem; letter-spacing: 0.5px;">
+                <i class="fas fa-exclamation-triangle"></i> Zona de Perigo
+            </h2>
+            
+            <p style="font-size: 0.875rem; color: #7f1d1d; margin-bottom: 1rem; line-height: 1.6;">
+                Esta ação é irreversível. Todos os dados, mensagens e configurações serão perdidos permanentemente.
+            </p>
+            
+            <form method="POST" action="/sessoes/{{ sessao.id }}/deletar" onsubmit="return confirm('⚠️ ATENÇÃO!\n\nDeseja realmente deletar esta sessão?\n\n❌ Esta ação NÃO pode ser desfeita!\n❌ Todos os dados serão perdidos!\n❌ Mensagens serão excluídas!\n\nDigite OK para confirmar.');">
+                <button type="submit" class="button is-danger is-fullwidth" style="font-weight: 600;">
+                    <span class="icon"><i class="fas fa-trash-alt"></i></span>
+                    <span>Deletar Sessão</span>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Footer de Documentação -->
+<div class="box" style="background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border: 2px solid #e5e7eb; margin-top: 3rem;">
+    <div style="display: flex; gap: 2rem; align-items: start;">
+        <div style="flex-shrink: 0;">
+            <div style="width: 64px; height: 64px; border-radius: 12px; background: linear-gradient(135deg, rgba(199, 91, 155, 0.1) 0%, rgba(91, 78, 155, 0.1) 100%); display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-info-circle" style="font-size: 1.75rem; color: #C75B9B;"></i>
+            </div>
+        </div>
+        <div style="flex: 1;">
+            <h3 style="font-size: 1.125rem; font-weight: 700; color: #1f2937; margin-bottom: 0.75rem;">
+                <i class="fas fa-book"></i> O que é uma Sessão?
+            </h3>
+            <div style="color: #4b5563; line-height: 1.7; font-size: 0.9375rem;">
+                <p style="margin-bottom: 0.75rem;">
+                    <strong style="color: #1f2937;">Sessão é o canal de comunicação WhatsApp.</strong> Cada sessão representa uma conexão única com uma conta do WhatsApp Web.
+                </p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                    <div style="display: flex; align-items: start; gap: 0.75rem;">
+                        <i class="fas fa-plug" style="color: #10b981; margin-top: 0.25rem;"></i>
+                        <div>
+                            <strong style="color: #1f2937; display: block; margin-bottom: 0.25rem;">Conexão</strong>
+                            <span>Gerencia a conexão via QR Code ou pair code com o WhatsApp</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: start; gap: 0.75rem;">
+                        <i class="fas fa-robot" style="color: #C75B9B; margin-top: 0.25rem;"></i>
+                        <div>
+                            <strong style="color: #1f2937; display: block; margin-bottom: 0.25rem;">Agentes</strong>
+                            <span>Uma sessão pode ter múltiplos agentes IA com personalidades diferentes</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: start; gap: 0.75rem;">
+                        <i class="fas fa-comments" style="color: #3b82f6; margin-top: 0.25rem;"></i>
+                        <div>
+                            <strong style="color: #1f2937; display: block; margin-bottom: 0.25rem;">Mensagens</strong>
+                            <span>Recebe e envia mensagens através do canal conectado</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

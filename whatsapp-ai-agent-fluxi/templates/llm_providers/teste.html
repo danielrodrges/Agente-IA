@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titulo }} - Fluxi.IA{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="level">
+        <div class="level-left">
+            <div class="level-item">
+                <h1 class="title is-3">
+                    <i class="fas fa-play"></i>
+                    {{ titulo }}
+                </h1>
+            </div>
+        </div>
+        <div class="level-right">
+            <div class="level-item">
+                <a href="/provedores-llm/{{ provedor.id }}/detalhes" class="button is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>Voltar</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="columns">
+        <!-- Formulário de Teste -->
+        <div class="column is-two-thirds">
+            <div class="box">
+                <h3 class="title is-5">
+                    <i class="fas fa-flask"></i>
+                    Teste de Conexão
+                </h3>
+                
+                <form method="POST" action="/provedores-llm/{{ provedor.id }}/enviar-teste">
+                    <div class="field">
+                        <label class="label">Modelo</label>
+                        <div class="control">
+                            <div class="select is-fullwidth">
+                                <select name="modelo" required>
+                                    <option value="">Selecione um modelo</option>
+                                    {% for modelo in modelos %}
+                                    <option value="{{ modelo.modelo_id }}">{{ modelo.nome }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        {% if not modelos %}
+                        <p class="help has-text-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Nenhum modelo disponível. Teste a conexão primeiro.
+                        </p>
+                        {% endif %}
+                    </div>
+
+                    <div class="field">
+                        <label class="label">Mensagem de Teste</label>
+                        <div class="control">
+                            <textarea class="textarea" name="mensagem" 
+                                      placeholder="Digite uma mensagem para testar o provedor..." 
+                                      rows="4" required>Olá! Como você está?</textarea>
+                        </div>
+                    </div>
+
+                    <div class="columns">
+                        <div class="column is-half">
+                            <div class="field">
+                                <label class="label">Temperatura</label>
+                                <div class="control">
+                                    <input class="input" type="number" name="temperatura" 
+                                           value="0.7" min="0" max="2" step="0.1">
+                                </div>
+                                <p class="help">Controla a criatividade da resposta (0.0 a 2.0)</p>
+                            </div>
+                        </div>
+                        <div class="column is-half">
+                            <div class="field">
+                                <label class="label">Máximo de Tokens</label>
+                                <div class="control">
+                                    <input class="input" type="number" name="max_tokens" 
+                                           value="2000" min="1" max="100000">
+                                </div>
+                                <p class="help">Limite de tokens na resposta</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field is-grouped">
+                        <div class="control">
+                            <button type="submit" class="button is-primary" 
+                                    {% if not modelos %}disabled{% endif %}>
+                                <span class="icon">
+                                    <i class="fas fa-paper-plane"></i>
+                                </span>
+                                <span>Enviar Teste</span>
+                            </button>
+                        </div>
+                        <div class="control">
+                            <a href="/provedores-llm/{{ provedor.id }}/detalhes" class="button is-light">
+                                Cancelar
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Informações do Provedor -->
+        <div class="column is-one-third">
+            <div class="box">
+                <h3 class="title is-5">
+                    <i class="fas fa-info-circle"></i>
+                    Informações do Provedor
+                </h3>
+                
+                <div class="content">
+                    <div class="media">
+                        <div class="media-left">
+                            <span class="icon has-text-primary">
+                                <i class="fas fa-server fa-2x"></i>
+                            </span>
+                        </div>
+                        <div class="media-content">
+                            <p class="title is-6">{{ provedor.nome }}</p>
+                            <p class="subtitle is-6">
+                                <span class="tag is-light">{{ provedor.base_url }}</span>
+                                {% if provedor.ativo %}
+                                    <span class="tag is-success">Ativo</span>
+                                {% else %}
+                                    <span class="tag is-danger">Inativo</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="content">
+                        <p><strong>URL:</strong> <code>{{ provedor.base_url }}</code></p>
+                        <p><strong>Porta:</strong> {{ provedor.porta }}</p>
+                        
+                        {% if provedor.ultimo_teste %}
+                        <p><strong>Último teste:</strong> {{ provedor.ultimo_teste.strftime('%d/%m/%Y %H:%M') }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Modelos Disponíveis -->
+            <div class="box">
+                <h3 class="title is-5">
+                    <i class="fas fa-cube"></i>
+                    Modelos ({{ modelos|length }})
+                </h3>
+                
+                {% if modelos %}
+                <div class="content">
+                    {% for modelo in modelos %}
+                    <div class="media">
+                        <div class="media-content">
+                            <p class="title is-6">{{ modelo.nome }}</p>
+                            <div class="tags">
+                                {% if modelo.suporta_imagens %}
+                                    <span class="tag is-success is-small">Imagens</span>
+                                {% endif %}
+                                {% if modelo.suporta_ferramentas %}
+                                    <span class="tag is-info is-small">Ferramentas</span>
+                                {% endif %}
+                                {% if modelo.contexto %}
+                                    <span class="tag is-light is-small">{{ modelo.contexto }} tokens</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% if not loop.last %}<hr>{% endif %}
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="content has-text-centered">
+                    <span class="icon is-large has-text-grey">
+                        <i class="fas fa-cube fa-2x"></i>
+                    </span>
+                    <p class="has-text-grey">Nenhum modelo carregado</p>
+                    <p class="has-text-grey is-size-7">Teste a conexão para carregar os modelos</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

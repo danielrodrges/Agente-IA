@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}Agentes - {{ sessao.nome }} - Fluxi.IA{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div style="margin-bottom: 2rem;">
+    <nav class="breadcrumb" aria-label="breadcrumbs" style="margin-bottom: 0.75rem !important;">
+        <ul style="margin-bottom: 0 !important;">
+            <li><a href="/sessoes" style="color: #6b7280;"><i class="fas fa-home"></i> Sessões</a></li>
+            <li><a href="/sessoes/{{ sessao.id }}/detalhes" style="color: #6b7280;">{{ sessao.nome }}</a></li>
+            <li class="is-active"><a style="color: #C75B9B;">Agentes</a></li>
+        </ul>
+    </nav>
+    <h1 class="title is-3" style="margin-bottom: 0.75rem !important; line-height: 1.2;">
+        <i class="fas fa-robot" style="color: #5B4E9B;"></i> Agentes da Sessão
+    </h1>
+    <p class="subtitle is-6" style="color: #6b7280; margin-bottom: 0 !important; line-height: 1.4;">
+        Gerencie as personalidades IA que respondem neste canal
+    </p>
+</div>
+
+<!-- Agente Ativo Destaque -->
+{% if sessao.agente_ativo_id %}
+    {% for agente in agentes %}
+        {% if agente.id == sessao.agente_ativo_id %}
+<div class="box" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 2px solid #10b981; margin-bottom: 2rem;">
+    <div style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
+        <div style="width: 64px; height: 64px; border-radius: 12px; background: #10b981; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <i class="fas fa-robot" style="color: white; font-size: 2rem;"></i>
+        </div>
+        <div style="flex: 1; min-width: 200px;">
+            <p style="font-size: 0.8125rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #166534; margin-bottom: 0.5rem;">
+                <i class="fas fa-crown"></i> Agente Ativo Agora
+            </p>
+            <p style="font-size: 1.25rem; font-weight: 700; color: #1f2937; margin-bottom: 0.25rem;">
+                #{{ agente.codigo }} - {{ agente.nome }}
+            </p>
+            <p style="font-size: 0.875rem; color: #166534;">
+                <i class="fas fa-info-circle"></i> Este agente está respondendo as mensagens automaticamente
+            </p>
+        </div>
+        <a href="/agentes/{{ agente.id }}/editar" class="button" style="background: #10b981; color: white; border: none; font-weight: 600;">
+            <span class="icon"><i class="fas fa-edit"></i></span>
+            <span>Editar</span>
+        </a>
+    </div>
+</div>
+        {% endif %}
+    {% endfor %}
+{% else %}
+<div class="box" style="background: #fef3c7; border: 2px dashed #f59e0b; margin-bottom: 2rem;">
+    <div style="text-align: center; padding: 1rem;">
+        <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #f59e0b; margin-bottom: 0.75rem;"></i>
+        <p style="font-weight: 600; color: #92400e; margin-bottom: 0.5rem;">Nenhum agente ativo</p>
+        <p style="font-size: 0.875rem; color: #78350f;">Ative um agente para começar a responder mensagens automaticamente</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Stats & Actions -->
+<div class="level" style="background: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; border: 1px solid #e5e7eb;">
+    <div class="level-left">
+        <div class="level-item">
+            <div>
+                <p class="heading" style="color: #6b7280; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px;">Total de Agentes</p>
+                <p class="title is-4" style="margin-bottom: 0;">
+                    <span style="background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                        {{ agentes|length }}
+                    </span>
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="level-right">
+        <div class="level-item">
+            <a href="/agentes/sessao/{{ sessao.id }}/novo" class="button is-primary is-medium" style="background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); border: none; border-radius: 8px; font-weight: 600;">
+                <span class="icon"><i class="fas fa-plus-circle"></i></span>
+                <span>Novo Agente</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Agentes Grid -->
+{% if agentes %}
+<div class="columns is-multiline">
+    {% for agente in agentes %}
+    <div class="column is-12-mobile is-6-tablet is-6-desktop">
+        <div class="card" style="height: 100%; display: flex; flex-direction: column; {% if agente.id == sessao.agente_ativo_id %}border: 2px solid #10b981;{% endif %}">
+            <!-- Card Header -->
+            <div class="card-content" style="flex: 1;">
+                <div style="display: flex; align-items: start; gap: 1rem; margin-bottom: 1rem;">
+                    <div style="width: 56px; height: 56px; border-radius: 12px; background: {% if agente.id == sessao.agente_ativo_id %}linear-gradient(135deg, #10b981 0%, #059669 100%){% else %}linear-gradient(135deg, #5B4E9B 0%, #C75B9B 100%){% endif %}; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="fas fa-robot" style="font-size: 1.75rem; color: white;"></i>
+                    </div>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; flex-wrap: wrap;">
+                            <span style="background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700; font-size: 1.0625rem;">
+                                #{{ agente.codigo }}
+                            </span>
+                            {% if agente.id == sessao.agente_ativo_id %}
+                            <span class="tag" style="background: #10b981; color: white; font-weight: 700; border-radius: 50px; font-size: 0.75rem;">
+                                <i class="fas fa-crown"></i> ATIVO
+                            </span>
+                            {% endif %}
+                        </div>
+                        <p style="font-weight: 700; color: #1f2937; font-size: 1.125rem; margin-bottom: 0.5rem;">{{ agente.nome }}</p>
+                        <p style="font-size: 0.875rem; color: #6b7280; line-height: 1.5;">{{ agente.descricao or 'Sem descrição' }}</p>
+                    </div>
+                </div>
+
+                <!-- Info -->
+                <div style="display: grid; gap: 0.75rem; font-size: 0.875rem;">
+                    <div style="padding: 0.75rem; background: #f9fafb; border-radius: 8px; border-left: 3px solid #C75B9B;">
+                        <p style="color: #6b7280; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; margin-bottom: 0.25rem;">
+                            <i class="fas fa-user-tie"></i> Papel
+                        </p>
+                        <p style="color: #1f2937; font-weight: 500;">{{ agente.agente_papel }}</p>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; gap: 0.5rem;">
+                        <div style="flex: 1; padding: 0.75rem; background: #f9fafb; border-radius: 8px; text-align: center;">
+                            <p style="color: #6b7280; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.25rem;"><i class="fas fa-brain"></i></p>
+                            <p style="color: #1f2937; font-weight: 600; font-size: 0.875rem;">{{ agente.modelo_llm or 'Padrão' }}</p>
+                        </div>
+                        <div style="flex: 1; padding: 0.75rem; background: #f9fafb; border-radius: 8px; text-align: center;">
+                            <p style="color: #6b7280; font-size: 0.75rem; font-weight: 600; margin-bottom: 0.25rem;"><i class="fas fa-tools"></i></p>
+                            <p style="color: #1f2937; font-weight: 600; font-size: 0.875rem;">
+                                {% set ferramentas_count = agente.ferramentas.all()|length %}
+                                {{ ferramentas_count }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Card Actions -->
+            <footer class="card-footer" style="border-top: 1px solid #e5e7eb;">
+                <a href="/agentes/{{ agente.id }}/editar" class="card-footer-item" style="font-weight: 600; color: #3b82f6;">
+                    <span class="icon"><i class="fas fa-edit"></i></span>
+                    <span>Editar</span>
+                </a>
+                
+                <a href="/agentes/{{ agente.id }}/ferramentas" class="card-footer-item" style="font-weight: 600; color: #8b5cf6;">
+                    <span class="icon"><i class="fas fa-tools"></i></span>
+                    <span>Ferramentas</span>
+                </a>
+                
+                {% if agente.id != sessao.agente_ativo_id %}
+                <form method="POST" action="/agentes/{{ agente.id }}/ativar" style="flex: 1;">
+                    <button type="submit" class="card-footer-item" style="border: none; background: none; cursor: pointer; font-weight: 600; color: #10b981; width: 100%;">
+                        <span class="icon"><i class="fas fa-check-circle"></i></span>
+                        <span>Ativar</span>
+                    </button>
+                </form>
+                {% else %}
+                <span class="card-footer-item" style="color: #10b981; font-weight: 600; cursor: default;">
+                    <span class="icon"><i class="fas fa-crown"></i></span>
+                    <span>Em Uso</span>
+                </span>
+                {% endif %}
+            </footer>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<!-- Empty State -->
+<div class="box" style="text-align: center; padding: 4rem 2rem; background: white; border: 2px dashed #e5e7eb;">
+    <div style="margin-bottom: 1.5rem;">
+        <span style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, rgba(91, 78, 155, 0.1) 0%, rgba(199, 91, 155, 0.1) 100%); display: inline-flex; align-items: center; justify-content: center;">
+            <i class="fas fa-robot" style="font-size: 2.5rem; background: linear-gradient(135deg, #5B4E9B 0%, #C75B9B 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"></i>
+        </span>
+    </div>
+    <h3 class="title is-4" style="margin-bottom: 0.75rem;">Nenhum agente cadastrado</h3>
+    <p style="color: #6b7280; margin-bottom: 2rem; max-width: 400px; margin-left: auto; margin-right: auto;">
+        Crie seu primeiro agente IA para começar a responder mensagens automaticamente nesta sessão.
+    </p>
+    <a href="/agentes/sessao/{{ sessao.id }}/novo" class="button is-primary is-medium" style="background: linear-gradient(135deg, #C75B9B 0%, #5B4E9B 100%); border: none; border-radius: 8px; font-weight: 600;">
+        <span class="icon"><i class="fas fa-plus-circle"></i></span>
+        <span>Criar Primeiro Agente</span>
+    </a>
+</div>
+{% endif %}
+
+<!-- Footer de Documentação -->
+<div class="box" style="background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border: 2px solid #e5e7eb; margin-top: 3rem;">
+    <div style="display: flex; gap: 2rem; align-items: start; flex-wrap: wrap;">
+        <div style="flex-shrink: 0;">
+            <div style="width: 64px; height: 64px; border-radius: 12px; background: linear-gradient(135deg, rgba(91, 78, 155, 0.1) 0%, rgba(199, 91, 155, 0.1) 100%); display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-book-open" style="font-size: 1.75rem; color: #5B4E9B;"></i>
+            </div>
+        </div>
+        <div style="flex: 1; min-width: 300px;">
+            <h3 style="font-size: 1.125rem; font-weight: 700; color: #1f2937; margin-bottom: 0.75rem;">
+                <i class="fas fa-lightbulb"></i> O que é um Agente?
+            </h3>
+            <div style="color: #4b5563; line-height: 1.7; font-size: 0.9375rem;">
+                <p style="margin-bottom: 1rem;">
+                    <strong style="color: #1f2937;">Agente = Personalidade IA.</strong> Cada agente tem seu próprio prompt, comportamento e conjunto de ferramentas. Você pode ter múltiplos agentes na mesma sessão e alternar entre eles.
+                </p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                    <div style="display: flex; align-items: start; gap: 0.75rem;">
+                        <i class="fas fa-crown" style="color: #10b981; margin-top: 0.25rem;"></i>
+                        <div>
+                            <strong style="color: #1f2937;">Agente Ativo:</strong> É quem responde as mensagens no momento
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: start; gap: 0.75rem;">
+                        <i class="fas fa-user-tie" style="color: #5B4E9B; margin-top: 0.25rem;"></i>
+                        <div>
+                            <strong style="color: #1f2937;">Papel:</strong> Define a personalidade e identidade do agente
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: start; gap: 0.75rem;">
+                        <i class="fas fa-tools" style="color: #C75B9B; margin-top: 0.25rem;"></i>
+                        <div>
+                            <strong style="color: #1f2937;">Ferramentas:</strong> Funções que o agente pode executar
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

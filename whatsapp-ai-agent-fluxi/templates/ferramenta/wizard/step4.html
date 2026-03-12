@@ -1,0 +1,137 @@
+{% extends "ferramenta/wizard/base.html" %}
+
+{% block wizard_content %}
+<div class="box">
+    <h2 class="title is-4">
+        <i class="fas fa-flask"></i> Testar Ferramenta
+    </h2>
+    <p class="subtitle is-6">Execute a ferramenta com dados de exemplo para validar</p>
+
+    <!-- Formulário de Teste -->
+    <form method="POST" action="/ferramentas/wizard/step4/testar">
+        <div class="columns is-multiline">
+            {% if wizard_data.params %}
+                {% for param_name, param_config in wizard_data.params.items() %}
+                <div class="column is-6">
+                    <div class="field">
+                        <label class="label">
+                            {{ param_name }}
+                            {% if param_config.required %}
+                            <span class="tag is-danger is-light is-small">obrigatório</span>
+                            {% endif %}
+                        </label>
+                        <div class="control">
+                            {% if param_config.type == 'bool' %}
+                                <label class="checkbox">
+                                    <input type="checkbox" name="test_{{ param_name }}" value="true">
+                                    Verdadeiro
+                                </label>
+                            {% elif param_config.type == 'enum' %}
+                                <div class="select is-fullwidth">
+                                    <select name="test_{{ param_name }}" {% if param_config.required %}required{% endif %}>
+                                        <option value="">Selecione...</option>
+                                        {% for option in param_config.options %}
+                                        <option value="{{ option }}">{{ option }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            {% elif param_config.type == 'int' %}
+                                <input class="input" type="number" name="test_{{ param_name }}"
+                                       placeholder="Ex: 123"
+                                       {% if param_config.required %}required{% endif %}>
+                            {% elif param_config.type == 'float' %}
+                                <input class="input" type="number" step="0.01" name="test_{{ param_name }}"
+                                       placeholder="Ex: 12.34"
+                                       {% if param_config.required %}required{% endif %}>
+                            {% elif param_config.type == 'array' %}
+                                <input class="input" type="text" name="test_{{ param_name }}"
+                                       placeholder="Ex: valor1, valor2, valor3"
+                                       {% if param_config.required %}required{% endif %}>
+                                <p class="help">Separe os valores por vírgula</p>
+                            {% else %}
+                                <input class="input" type="text" name="test_{{ param_name }}"
+                                       placeholder="Ex: {{ param_config.description or 'Digite o valor' }}"
+                                       {% if param_config.required %}required{% endif %}>
+                            {% endif %}
+                        </div>
+                        {% if param_config.description %}
+                        <p class="help">{{ param_config.description }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="column">
+                    <div class="notification is-info is-light">
+                        Esta ferramenta não possui parâmetros
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="field">
+            <div class="control">
+                <button type="submit" class="button is-info is-medium">
+                    <span class="icon"><i class="fas fa-play"></i></span>
+                    <span>Executar Teste</span>
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Resultado do Teste -->
+    {% if test_result %}
+    <hr>
+    <h3 class="subtitle is-5">
+        <i class="fas fa-chart-bar"></i> Resultado do Teste
+    </h3>
+
+    {% if test_result.erro %}
+        <div class="notification is-danger">
+            <p class="has-text-weight-bold">Erro na execução:</p>
+            <p>{{ test_result.erro }}</p>
+        </div>
+    {% else %}
+        <div class="notification is-success is-light">
+            <p class="has-text-weight-bold">✓ Teste executado com sucesso!</p>
+        </div>
+
+        <div class="box" style="background: #f5f5f5;">
+            <p class="has-text-weight-bold mb-3">
+                <span class="icon has-text-success"><i class="fas fa-check-circle"></i></span>
+                Resposta da API:
+            </p>
+            <pre style="background: #2d2d2d; color: #f8f8f2; padding: 1rem; border-radius: 4px; overflow-x: auto; max-height: 500px;">{{ test_result | tojson(indent=2) }}</pre>
+        </div>
+
+        <div class="help-box mt-4">
+            <p class="has-text-weight-bold">
+                <span class="icon"><i class="fas fa-check-circle"></i></span>
+                Próximo passo:
+            </p>
+            <p>Agora você pode mapear os campos da resposta para nomes mais simples</p>
+        </div>
+    {% endif %}
+    {% endif %}
+</div>
+
+<!-- Botões de Navegação -->
+<div class="field is-grouped is-grouped-right">
+    <div class="control">
+        <form method="POST" action="/ferramentas/wizard/step4/voltar" style="display: inline;">
+            <button type="submit" class="button is-light is-medium">
+                <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                <span>Voltar</span>
+            </button>
+        </form>
+    </div>
+    <div class="control">
+        <form method="POST" action="/ferramentas/wizard/step4/continuar" style="display: inline;">
+            <button type="submit" class="button is-primary is-medium" {% if not test_result or test_result.erro %}disabled{% endif %}>
+                <span>Próximo</span>
+                <span class="icon"><i class="fas fa-arrow-right"></i></span>
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Métricas do Atendimento - Fluxi.IA{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 class="title is-3" style="margin-bottom: 0.75rem !important;">
+        <i class="fas fa-chart-bar" style="color: #8b5cf6;"></i> Métricas do Call Center
+    </h1>
+    <p class="subtitle is-6" style="color: #6b7280; margin-bottom: 0 !important;">
+        KPIs completos de atendimento, escalação e agendamentos
+    </p>
+</div>
+
+<!-- Seletor de Período -->
+<div class="box" style="margin-bottom: 1.5rem; padding: 1rem 1.5rem;">
+    <div style="display: flex; gap: 0.75rem; align-items: center;">
+        <span style="font-weight: 600; color: var(--text-secondary);">Período:</span>
+        <button class="button is-small" onclick="carregarMetricas(7)" id="btn-7d">7 dias</button>
+        <button class="button is-small is-link" onclick="carregarMetricas(30)" id="btn-30d">30 dias</button>
+        <button class="button is-small" onclick="carregarMetricas(90)" id="btn-90d">90 dias</button>
+        <div style="margin-left: auto;">
+            <a href="/atendente/painel" class="button is-small is-light">
+                <i class="fas fa-arrow-left"></i>&nbsp;Voltar ao Painel
+            </a>
+        </div>
+    </div>
+</div>
+
+<div id="metricas-container">
+    <div class="has-text-centered" style="padding: 3rem;">
+        <i class="fas fa-spinner fa-spin fa-2x" style="color: #6b7280;"></i>
+    </div>
+</div>
+
+<script>
+let periodoAtual = 30;
+
+async function carregarMetricas(dias) {
+    periodoAtual = dias;
+    
+    // Atualizar botões ativos
+    document.querySelectorAll('[id^="btn-"]').forEach(b => b.classList.remove('is-link'));
+    document.getElementById(`btn-${dias}d`).classList.add('is-link');
+    
+    const container = document.getElementById('metricas-container');
+    container.innerHTML = '<div class="has-text-centered" style="padding: 3rem;"><i class="fas fa-spinner fa-spin fa-2x" style="color: #6b7280;"></i></div>';
+    
+    try {
+        const response = await fetch(`/api/metricas/callcenter?dias=${dias}`);
+        const data = await response.json();
+        renderizarMetricas(data);
+    } catch (e) {
+        container.innerHTML = '<div class="notification is-danger is-light">Erro ao carregar métricas</div>';
+    }
+}
+
+function renderizarMetricas(m) {
+    const container = document.getElementById('metricas-container');
+    
+    const atd = m.atendimento || {};
+    const esc = m.escalacao || {};
+    const agd = m.agendamentos || {};
+    const custos = m.custos || {};
+    
+    container.innerHTML = `
+    <!-- Atendimento Geral -->
+    <div class="box" style="margin-bottom: 2rem;">
+        <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
+            <i class="fas fa-headset" style="color: #8b5cf6;"></i> Atendimento
+        </h2>
+        <div class="columns is-multiline">
+            ${metricCard('Mensagens Recebidas', atd.mensagens_recebidas, '#3b82f6', 'fa-inbox')}
+            ${metricCard('Mensagens Respondidas', atd.mensagens_respondidas, '#10b981', 'fa-check-double')}
+            ${metricCard('Taxa de Resposta', atd.taxa_resposta_pct + '%', '#8b5cf6', 'fa-percentage')}
+            ${metricCard('Tempo Médio', formatMs(atd.tempo_medio_resposta_ms), '#f59e0b', 'fa-clock')}
+            ${metricCard('Clientes Únicos', atd.clientes_unicos, '#ec4899', 'fa-users')}
+            ${metricCard('Total Mensagens', atd.total_mensagens, '#6366f1', 'fa-comments')}
+        </div>
+    </div>
+    
+    <!-- Escalação -->
+    <div class="box" style="margin-bottom: 2rem;">
+        <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
+            <i class="fas fa-user-shield" style="color: #f59e0b;"></i> Escalação (Human-in-the-Loop)
+        </h2>
+        <div class="columns is-multiline">
+            ${metricCard('Total Escalações', esc.total_escalacoes, '#ef4444', 'fa-exclamation-triangle')}
+            ${metricCard('Respondidas', esc.respondidas, '#10b981', 'fa-check-circle')}
+            ${metricCard('Pendentes', esc.pendentes, '#f59e0b', 'fa-hourglass-half')}
+            ${metricCard('Assumidas', esc.assumidas_humano, '#3b82f6', 'fa-user-tie')}
+            ${metricCard('Expiradas', esc.expiradas, '#6b7280', 'fa-times-circle')}
+            ${metricCard('Resolução pela IA', (esc.taxa_resolucao_ia_pct || 0) + '%', '#10b981', 'fa-robot')}
+            ${metricCard('Tempo Espera Médio', formatMs(esc.tempo_espera_medio_ms), '#f59e0b', 'fa-stopwatch')}
+            ${metricCard('Tempo Resolução Médio', formatMs(esc.tempo_resolucao_medio_ms), '#8b5cf6', 'fa-hourglass-end')}
+        </div>
+    </div>
+    
+    <!-- Agendamentos -->
+    <div class="box" style="margin-bottom: 2rem;">
+        <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
+            <i class="fas fa-calendar-check" style="color: #10b981;"></i> Agendamentos
+        </h2>
+        <div class="columns is-multiline">
+            ${metricCard('Consultas Agendadas', agd.consultas_agendadas, '#10b981', 'fa-calendar-plus')}
+            ${metricCard('Consultas Remarcadas', agd.consultas_remarcadas, '#3b82f6', 'fa-calendar-alt')}
+            ${metricCard('Consultas Canceladas', agd.consultas_canceladas, '#ef4444', 'fa-calendar-times')}
+            ${metricCard('Consultas Confirmadas', agd.consultas_confirmadas, '#8b5cf6', 'fa-calendar-check')}
+            ${metricCard('Exames Agendados', agd.exames_agendados, '#06b6d4', 'fa-flask')}
+            ${metricCard('Pacientes Cadastrados', agd.pacientes_cadastrados, '#ec4899', 'fa-user-plus')}
+            ${metricCard('Orçamentos', agd.orcamentos_solicitados, '#f59e0b', 'fa-file-invoice-dollar')}
+            ${metricCard('Total Procedimentos', agd.total_procedimentos, '#6366f1', 'fa-stethoscope')}
+        </div>
+    </div>
+    
+    <!-- Custos/Tokens -->
+    <div class="box" style="margin-bottom: 2rem;">
+        <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
+            <i class="fas fa-coins" style="color: #f59e0b;"></i> Consumo de Tokens
+        </h2>
+        <div class="columns">
+            ${metricCard('Tokens Input', custos.tokens_input?.toLocaleString(), '#3b82f6', 'fa-arrow-right')}
+            ${metricCard('Tokens Output', custos.tokens_output?.toLocaleString(), '#10b981', 'fa-arrow-left')}
+            ${metricCard('Tokens Total', custos.tokens_total?.toLocaleString(), '#8b5cf6', 'fa-calculator')}
+        </div>
+    </div>
+    
+    <!-- Volume por Hora -->
+    ${renderVolumeHora(m.volume_por_hora)}
+    `;
+}
+
+function metricCard(label, valor, cor, icone) {
+    return `
+    <div class="column is-3">
+        <div style="text-align: center; padding: 1.25rem; background: var(--bg-secondary); border-radius: 12px; border: 2px solid var(--border-color);">
+            <div style="width: 45px; height: 45px; margin: 0 auto 0.75rem; border-radius: 50%; background: ${cor}15; display: flex; align-items: center; justify-content: center;">
+                <i class="fas ${icone}" style="font-size: 1.1rem; color: ${cor};"></i>
+            </div>
+            <div style="font-size: 2rem; font-weight: 800; color: ${cor}; margin-bottom: 0.25rem;">${valor ?? 0}</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">${label}</div>
+        </div>
+    </div>`;
+}
+
+function formatMs(ms) {
+    if (!ms || ms === 0) return '0s';
+    if (ms < 1000) return `${Math.round(ms)}ms`;
+    if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+    return `${(ms / 60000).toFixed(1)}min`;
+}
+
+function renderVolumeHora(volume) {
+    if (!volume) return '';
+    
+    const max = Math.max(...Object.values(volume), 1);
+    let bars = '';
+    
+    for (const [hora, count] of Object.entries(volume)) {
+        const pct = (count / max) * 100;
+        bars += `
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
+            <div style="font-size: 0.65rem; color: var(--text-muted);">${count}</div>
+            <div style="width: 100%; max-width: 20px; height: 80px; background: var(--border-color); border-radius: 4px; position: relative; overflow: hidden;">
+                <div style="position: absolute; bottom: 0; width: 100%; height: ${pct}%; background: linear-gradient(to top, #C75B9B, #5B4E9B); border-radius: 4px;"></div>
+            </div>
+            <div style="font-size: 0.65rem; color: var(--text-muted);">${hora}h</div>
+        </div>`;
+    }
+    
+    return `
+    <div class="box">
+        <h2 class="title is-5" style="margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid #e5e7eb;">
+            <i class="fas fa-chart-bar" style="color: #6366f1;"></i> Volume por Hora do Dia
+        </h2>
+        <div style="display: flex; gap: 2px; align-items: flex-end; padding: 0 0.5rem;">
+            ${bars}
+        </div>
+    </div>`;
+}
+
+document.addEventListener('DOMContentLoaded', () => carregarMetricas(30));
+</script>
+{% endblock %}

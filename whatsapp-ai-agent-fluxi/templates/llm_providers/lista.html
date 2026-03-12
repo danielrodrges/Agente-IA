@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titulo }} - Fluxi.IA{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="level">
+        <div class="level-left">
+            <div class="level-item">
+                <h1 class="title is-3">
+                    <i class="fas fa-server"></i>
+                    {{ titulo }}
+                </h1>
+            </div>
+        </div>
+        <div class="level-right">
+            <div class="level-item">
+                <a href="/provedores-llm/novo" class="button is-primary">
+                    <span class="icon">
+                        <i class="fas fa-plus"></i>
+                    </span>
+                    <span>Novo Provedor</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mensagem de Erro -->
+    {% if erro %}
+    <div class="notification is-danger">
+        <button class="delete"></button>
+        <strong>Erro:</strong> {{ erro }}
+    </div>
+    {% endif %}
+
+    <!-- Cards de Provedores -->
+    <div class="columns is-multiline">
+        {% for provedor in provedores %}
+        <div class="column is-one-third">
+            <div class="card">
+                <div class="card-content">
+                    <div class="media">
+                        <div class="media-left">
+                            <figure class="image is-48x48">
+                                <span class="icon is-large has-text-primary">
+                                    <i class="fas fa-server fa-2x"></i>
+                                </span>
+                            </figure>
+                        </div>
+                        <div class="media-content">
+                            <p class="title is-5">{{ provedor.nome }}</p>
+                            <p class="subtitle is-6">
+                                <span class="tag is-light">{{ provedor.base_url }}</span>
+                                {% if provedor.ativo %}
+                                    <span class="tag is-success">Ativo</span>
+                                {% else %}
+                                    <span class="tag is-danger">Inativo</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    {% if provedor.descricao %}
+                    <div class="content">
+                        <p>{{ provedor.descricao }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="content">
+                        <p class="has-text-grey">
+                            <i class="fas fa-link"></i> {{ provedor.base_url }}
+                        </p>
+                        {% if provedor.ultimo_teste %}
+                        <p class="has-text-grey is-size-7">
+                            <i class="fas fa-clock"></i> Último teste: {{ provedor.ultimo_teste.strftime('%d/%m/%Y %H:%M') }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <footer class="card-footer">
+                    <a href="/provedores-llm/{{ provedor.id }}/detalhes" class="card-footer-item">
+                        <i class="fas fa-cog"></i> Gerenciar
+                    </a>
+                    <form method="POST" action="/provedores-llm/{{ provedor.id }}/deletar" 
+                          onsubmit="return confirm('Tem certeza que deseja deletar este provedor?');" 
+                          style="display: inline; margin: 0;">
+                        <button type="submit" class="card-footer-item" 
+                                style="border: none; background: none; width: 100%; text-align: center; cursor: pointer; color: #f14668;">
+                            <i class="fas fa-trash"></i> Deletar
+                        </button>
+                    </form>
+                </footer>
+            </div>
+        </div>
+        {% else %}
+        <div class="column is-full">
+            <div class="box has-text-centered">
+                <div class="content">
+                    <span class="icon is-large has-text-grey">
+                        <i class="fas fa-server fa-3x"></i>
+                    </span>
+                    <h3 class="title is-4 has-text-grey">Nenhum provedor configurado</h3>
+                    <p class="has-text-grey">Comece adicionando um novo provedor LLM para conectar com LM Studio, llama.cpp ou Ollama.</p>
+                    <br>
+                    <a href="/provedores-llm/novo" class="button is-primary is-large">
+                        <span class="icon">
+                            <i class="fas fa-plus"></i>
+                        </span>
+                        <span>Adicionar Provedor</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

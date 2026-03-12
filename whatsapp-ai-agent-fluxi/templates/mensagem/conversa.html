@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+
+{% block title %}Conversa - {{ nome_cliente or telefone }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chat-container {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 150px);
+        max-height: 800px;
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    
+    .chat-header {
+        display: flex;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        background: var(--fluxi-gradient);
+        color: white;
+        gap: 1rem;
+    }
+    
+    .chat-back {
+        color: white;
+        text-decoration: none;
+        font-size: 1.25rem;
+        opacity: 0.9;
+        transition: opacity 0.2s;
+    }
+    
+    .chat-back:hover {
+        opacity: 1;
+    }
+    
+    .chat-avatar {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 1.25rem;
+    }
+    
+    .chat-info h2 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin-bottom: 0.125rem;
+    }
+    
+    .chat-info p {
+        font-size: 0.8125rem;
+        opacity: 0.9;
+    }
+    
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+        background: #f0f2f5;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .message {
+        display: flex;
+        flex-direction: column;
+        max-width: 70%;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .message.recebida {
+        align-self: flex-start;
+    }
+    
+    .message.enviada {
+        align-self: flex-end;
+    }
+    
+    .message-bubble {
+        padding: 0.75rem 1rem;
+        border-radius: 12px;
+        position: relative;
+        word-wrap: break-word;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    
+    .message.recebida .message-bubble {
+        background: white;
+        border-bottom-left-radius: 4px;
+    }
+    
+    .message.enviada .message-bubble {
+        background: #dcf8c6;
+        border-bottom-right-radius: 4px;
+    }
+    
+    .message-text {
+        font-size: 0.9375rem;
+        line-height: 1.5;
+        color: var(--text-primary);
+        white-space: pre-wrap;
+    }
+    
+    .message-meta {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 0.375rem;
+        margin-top: 0.25rem;
+        font-size: 0.6875rem;
+        color: var(--text-muted);
+    }
+    
+    .message-time {
+        color: rgba(0,0,0,0.45);
+    }
+    
+    .message-status {
+        color: #53bdeb;
+    }
+    
+    .message-label {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        color: var(--text-secondary);
+    }
+    
+    .message.recebida .message-label {
+        color: var(--fluxi-purple);
+    }
+    
+    .message.enviada .message-label {
+        color: var(--success);
+        text-align: right;
+    }
+    
+    /* Resposta do agente dentro da mensagem recebida */
+    .message-response {
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px dashed var(--border-color);
+    }
+    
+    .message-response-label {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        color: var(--success);
+        margin-bottom: 0.5rem;
+    }
+    
+    .message-response-text {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        line-height: 1.5;
+        white-space: pre-wrap;
+    }
+    
+    .message-tools {
+        margin-top: 0.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.375rem;
+    }
+    
+    .tool-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.125rem 0.5rem;
+        background: rgba(91, 78, 155, 0.1);
+        color: var(--fluxi-purple);
+        border-radius: 50px;
+        font-size: 0.6875rem;
+        font-weight: 500;
+    }
+    
+    .message-image {
+        max-width: 280px;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+    }
+    
+    .date-separator {
+        text-align: center;
+        margin: 1rem 0;
+    }
+    
+    .date-separator span {
+        background: rgba(0,0,0,0.1);
+        padding: 0.375rem 1rem;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+    }
+    
+    .chat-footer {
+        padding: 1rem 1.5rem;
+        background: var(--bg-primary);
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .chat-footer p {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+    
+    .empty-chat {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+    }
+    
+    .empty-chat i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    @media (max-width: 768px) {
+        .message {
+            max-width: 85%;
+        }
+        
+        .chat-container {
+            height: calc(100vh - 120px);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="chat-container">
+    <div class="chat-header">
+        <a href="/mensagens/sessao/{{ sessao.id }}" class="chat-back">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <div class="chat-avatar">
+            {{ (nome_cliente or telefone)[0].upper() }}
+        </div>
+        <div class="chat-info">
+            <h2>{{ nome_cliente or ('+' ~ telefone) }}</h2>
+            <p>{{ mensagens|length }} mensagens - Sessão: {{ sessao.nome }}</p>
+        </div>
+    </div>
+    
+    <div class="chat-messages" id="chatMessages">
+        {% if mensagens %}
+            {% set current_date = None %}
+            {% for msg in mensagens %}
+                {# Separador de data #}
+                {% set msg_date = msg.criado_em.strftime('%d/%m/%Y') %}
+                {% if msg_date != current_date %}
+                    {% set current_date = msg_date %}
+                    <div class="date-separator">
+                        <span>{{ msg.criado_em.strftime('%d de %B de %Y') }}</span>
+                    </div>
+                {% endif %}
+                
+                <div class="message {{ msg.direcao }}">
+                    <div class="message-label">
+                        {% if msg.direcao == 'recebida' %}
+                            <i class="fas fa-user"></i> Cliente
+                        {% else %}
+                            <i class="fas fa-robot"></i> Agente
+                        {% endif %}
+                    </div>
+                    <div class="message-bubble">
+                        {# Imagem se houver #}
+                        {% if msg.conteudo_imagem_base64 %}
+                            <img src="data:image/jpeg;base64,{{ msg.conteudo_imagem_base64 }}" class="message-image" alt="Imagem">
+                        {% elif msg.conteudo_imagem_path %}
+                            <div style="color: var(--text-muted); font-size: 0.875rem;">
+                                <i class="fas fa-image"></i> Imagem anexada
+                            </div>
+                        {% endif %}
+                        
+                        {# Texto da mensagem #}
+                        {% if msg.conteudo_texto %}
+                            <div class="message-text">{{ msg.conteudo_texto }}</div>
+                        {% endif %}
+                        
+                        {# Resposta do agente (apenas para mensagens recebidas) #}
+                        {% if msg.direcao == 'recebida' and msg.resposta_texto %}
+                            <div class="message-response">
+                                <div class="message-response-label">
+                                    <i class="fas fa-robot"></i> Resposta do Agente
+                                </div>
+                                <div class="message-response-text">{{ msg.resposta_texto }}</div>
+                                
+                                {# Ferramentas usadas #}
+                                {% if msg.ferramentas_usadas %}
+                                    <div class="message-tools">
+                                        {% for ferramenta in msg.ferramentas_usadas %}
+                                            <span class="tool-badge">
+                                                <i class="fas fa-cog"></i>
+                                                {{ ferramenta }}
+                                            </span>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                        
+                        <div class="message-meta">
+                            <span class="message-time">{{ msg.criado_em.strftime('%H:%M') }}</span>
+                            {% if msg.direcao == 'enviada' %}
+                                <i class="fas fa-check-double message-status"></i>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-chat">
+                <i class="fas fa-comments"></i>
+                <p>Nenhuma mensagem nesta conversa</p>
+            </div>
+        {% endif %}
+    </div>
+    
+    <div class="chat-footer">
+        <i class="fas fa-info-circle" style="color: var(--text-muted);"></i>
+        <p>Este é um histórico de mensagens. Para responder, use o WhatsApp diretamente.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Scroll para o final das mensagens
+document.addEventListener('DOMContentLoaded', function() {
+    const chatMessages = document.getElementById('chatMessages');
+    if (chatMessages) {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+});
+</script>
+{% endblock %}
